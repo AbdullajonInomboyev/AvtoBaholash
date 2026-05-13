@@ -1,0 +1,105 @@
+{% extends "base/base.html" %}
+{% block title %}O'qituvchi Paneli{% endblock %}
+{% block page_title %}O'qituvchi Boshqaruv Paneli{% endblock %}
+{% block page_subtitle %}Faoliyatlar va topshiriqlar{% endblock %}
+
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <a href="{% url 'core:teacher_subjects' %}" class="card flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0"><span class="material-symbols-outlined">book</span></div>
+    <div><div class="text-3xl font-extrabold text-slate-900 font-hl">{{ subjects_count }}</div><div class="text-xs text-slate-500">Fanlarim</div></div>
+  </a>
+  <a href="{% url 'core:teacher_assignments' %}" class="card flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+    <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0"><span class="material-symbols-outlined">assignment</span></div>
+    <div><div class="text-3xl font-extrabold text-slate-900 font-hl">{{ assignments_count }}</div><div class="text-xs text-slate-500">Topshiriqlar</div></div>
+  </a>
+  <a href="{% url 'core:teacher_grade_book' %}" class="card flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+    <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0"><span class="material-symbols-outlined">pending_actions</span></div>
+    <div><div class="text-3xl font-extrabold text-slate-900 font-hl">{{ pending_grade }}</div><div class="text-xs text-slate-500">Baholash kutmoqda</div></div>
+  </a>
+  <a href="{% url 'core:teacher_feedback' %}" class="card flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+    <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0"><span class="material-symbols-outlined">feedback</span></div>
+    <div><div class="text-3xl font-extrabold text-slate-900 font-hl">{{ pending_feedback }}</div><div class="text-xs text-slate-500">Shikoyatlar</div></div>
+  </a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Active assignments -->
+  <div class="lg:col-span-2 card">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-bold text-slate-900 font-hl">Faol topshiriqlar</h3>
+      <a href="{% url 'core:teacher_create_assignment' %}" class="flex items-center gap-1.5 bg-[#00236f] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#1e3a8a] transition-colors">
+        <span class="material-symbols-outlined text-[14px]">add</span> Yangi topshiriq
+      </a>
+    </div>
+    <div class="space-y-3">
+      {% for a in active_assignments %}
+      <a href="{% url 'core:teacher_edit_assignment' a.pk %}" class="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors border border-slate-100">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
+          {% if a.assignment_type == 'test' %}bg-blue-100 text-blue-600
+          {% elif a.assignment_type == 'written' %}bg-purple-100 text-purple-600
+          {% else %}bg-green-100 text-green-600{% endif %}">
+          <span class="material-symbols-outlined text-[18px]">
+            {% if a.assignment_type == 'test' %}quiz{% elif a.assignment_type == 'written' %}edit_note{% else %}attach_file{% endif %}
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-slate-900 truncate">{{ a.title }}</p>
+          <p class="text-xs text-slate-500">{{ a.subject.name }} · {{ a.submissions_count }} javob</p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <p class="text-xs font-bold text-slate-700">{{ a.deadline|date:"d.m.Y" }}</p>
+          <p class="text-[10px] text-slate-400">{{ a.deadline|date:"H:i" }}</p>
+        </div>
+        <a href="{% url 'core:teacher_edit_assignment' pk=a.pk %}" class="text-slate-400 hover:text-slate-700">
+          <span class="material-symbols-outlined text-[18px]">arrow_forward_ios</span>
+        </a>
+      </div>
+      {% empty %}
+      <div class="text-center py-8">
+        <span class="material-symbols-outlined text-4xl text-slate-300">assignment</span>
+        <p class="text-sm text-slate-500 mt-2">Faol topshiriqlar yo'q</p>
+        <a href="{% url 'core:teacher_create_assignment' %}" class="mt-3 inline-flex items-center gap-1 text-sm text-[#0058be] font-semibold hover:underline">
+          <span class="material-symbols-outlined text-[16px]">add</span> Topshiriq yarating
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Recent submissions -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-slate-900 font-hl">So'nggi javoblar</h3>
+      <a href="{% url 'core:teacher_grade_book' %}" class="text-xs text-[#0058be] font-semibold hover:underline">Jurnal →</a>
+    </div>
+    <div class="space-y-3">
+      {% for sub in recent_submissions %}
+      <a href="{% url 'core:teacher_grade_book' %}?assignment={{ sub.assignment_id }}" class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors">
+        <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold flex-shrink-0">{{ sub.student.initials }}</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold text-slate-900 truncate">{{ sub.student.full_name }}</p>
+          <p class="text-[10px] text-slate-400 truncate">{{ sub.assignment.title }}</p>
+        </div>
+        <span class="text-xs font-bold flex-shrink-0
+          {% if sub.status == 'graded' %}text-green-600
+          {% elif sub.status == 'disputed' %}text-red-600
+          {% else %}text-orange-500{% endif %}">
+          {% if sub.status == 'graded' %}{{ sub.display_score }}{% elif sub.status == 'disputed' %}Shikoyat{% else %}Yangi{% endif %}
+        </span>
+      </a>
+      {% empty %}
+      <p class="text-sm text-slate-400 text-center py-6">Javob yo'q</p>
+      {% endfor %}
+    </div>
+    {% if pending_grade %}
+    <a href="{% url 'core:teacher_grade_book' %}" class="mt-4 block w-full py-2.5 bg-orange-50 text-orange-700 rounded-lg text-sm font-bold text-center hover:bg-orange-100 transition-colors">
+      {{ pending_grade }} ta javob tekshirilmagan →
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

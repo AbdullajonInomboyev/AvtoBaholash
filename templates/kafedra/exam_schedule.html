@@ -1,0 +1,62 @@
+{% extends "base/base.html" %}
+{% block title %}Imtihon jadvali{% endblock %}
+{% block page_title %}Imtihon jadvali{% endblock %}
+{% block page_subtitle %}{{ dept.name }}{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_kafedra.html' %}{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-5">
+  <p class="text-sm text-slate-500">Jami: {{ exams|length }} ta imtihon</p>
+  <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="flex items-center gap-1.5 bg-[#00236f] text-white text-sm font-bold px-4 py-2.5 rounded-lg hover:bg-[#1e3a8a]">
+    <span class="material-symbols-outlined text-[16px]">add</span> Imtihon qo'shish
+  </button>
+</div>
+<div class="space-y-3">
+{% for exam in exams %}
+<div class="card flex items-center gap-5 border border-slate-100 hover:border-[#0058be]/20 hover:shadow-md transition-all relative group">
+  <a href="{% url 'core:kafedra_exam_detail' exam.pk %}" class="absolute inset-0 rounded-2xl"></a>
+  <div class="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 {% if exam.days_remaining <= 3 %}bg-red-100 text-red-700{% elif exam.days_remaining <= 7 %}bg-yellow-100 text-yellow-700{% else %}bg-green-100 text-green-700{% endif %}">
+    <span class="text-lg font-extrabold font-hl leading-none">{{ exam.exam_date|date:"d" }}</span>
+    <span class="text-[10px] font-bold uppercase">{{ exam.exam_date|date:"M" }}</span>
+  </div>
+  <div class="flex-1 min-w-0">
+    <p class="font-bold text-slate-900">{{ exam.subject.name }}</p>
+    <div class="flex items-center gap-3 mt-1 text-xs text-slate-500">
+      <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">schedule</span>{{ exam.exam_date|date:"H:i" }} · {{ exam.duration_minutes }} daqiqa</span>
+      {% if exam.room %}<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">location_on</span>{{ exam.room }}</span>{% endif %}
+    </div>
+    <div class="flex flex-wrap gap-1 mt-2">{% for g in exam.groups.all %}<span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded">{{ g.name }}</span>{% endfor %}</div>
+  </div>
+  <div class="flex-shrink-0">
+    {% if exam.days_remaining >= 0 %}
+    <span class="text-xs font-bold {% if exam.days_remaining <= 3 %}text-red-600{% elif exam.days_remaining <= 7 %}text-yellow-600{% else %}text-green-600{% endif %}">{{ exam.days_remaining }} kun</span>
+    {% else %}<span class="text-xs text-slate-400">O'tdi</span>{% endif %}
+  </div>
+  <form method="post" onsubmit="return confirm('O\'chirilsinmi?')" class="relative z-10">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ exam.pk }}">
+    <button class="text-red-400 hover:text-red-600"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+  </form>
+</div>
+{% empty %}
+<div class="card text-center py-14"><span class="material-symbols-outlined text-5xl text-slate-300">event_busy</span><p class="text-slate-500 mt-3">Imtihon jadvali bo'sh</p></div>
+{% endfor %}
+</div>
+<!-- Add modal -->
+<div id="add-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <div class="flex justify-between mb-5"><h3 class="font-bold text-slate-900 font-hl">Yangi imtihon</h3><button onclick="document.getElementById('add-modal').classList.add('hidden')"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
+    <form method="post" class="space-y-3">{% csrf_token %}<input type="hidden" name="action" value="create">
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Fan *</label>
+        <select name="subject" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+          <option value="">— Fan —</option>{% for s in subjects %}<option value="{{ s.pk }}">{{ s.name }}</option>{% endfor %}
+        </select></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Guruhlar *</label>
+        <div class="flex flex-wrap gap-2">{% for g in groups %}<label class="flex items-center gap-1.5 text-sm cursor-pointer"><input type="checkbox" name="groups" value="{{ g.pk }}"> {{ g.name }}</label>{% endfor %}</div></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Sana va vaqt *</label><input type="datetime-local" name="exam_date" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Xona</label><input name="room" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]" placeholder="B-402"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Davomiylik (daq.)</label><input type="number" name="duration" value="120" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]"></div>
+      </div>
+      <button type="submit" class="w-full bg-[#00236f] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">Saqlash</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

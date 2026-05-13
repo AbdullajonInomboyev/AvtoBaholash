@@ -1,0 +1,80 @@
+{% extends "base/base.html" %}
+{% block title %}Topshiriqlar{% endblock %}
+{% block page_title %}Topshiriqlarim{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-5 flex-wrap">
+  <div class="flex gap-2">
+    {% for st in my_subjects %}
+    <a href="?subject={{ st.subject.pk }}" class="px-3 py-2 rounded-lg text-sm font-semibold border transition-colors {% if sel_subject == st.subject.pk|stringformat:'s' %}bg-[#00236f] text-white border-[#00236f]{% else %}bg-white border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">{{ st.subject.name }}</a>
+    {% endfor %}
+    {% if sel_subject %}<a href="?" class="px-3 py-2 rounded-lg text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">Barchasi</a>{% endif %}
+  </div>
+  <button type="button" onclick="document.getElementById('subject-pick-modal').classList.remove('hidden')" class="ml-auto flex items-center gap-1.5 bg-[#00236f] text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-[#1e3a8a]">
+    <span class="material-symbols-outlined text-[16px]">add</span> Yangi topshiriq
+  </button>
+</div>
+
+<!-- Fan tanlash modal -->
+<div id="subject-pick-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg my-4">
+    <div class="flex justify-between items-start mb-2">
+      <div>
+        <h3 class="font-bold text-slate-900 text-lg" style="font-family:'Manrope',sans-serif">Qaysi fandan topshiriq?</h3>
+        <p class="text-xs text-slate-500 mt-0.5">Avval fanni tanlang, keyin batafsil ma'lumot kiritasiz</p>
+      </div>
+      <button type="button" onclick="document.getElementById('subject-pick-modal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+        <span class="material-symbols-outlined text-slate-400">close</span>
+      </button>
+    </div>
+    <div class="space-y-2 mt-4">
+      {% for st in my_subjects %}
+      <a href="{% url 'core:teacher_create_assignment' %}?subject={{ st.subject.pk }}"
+         class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-[#00236f] hover:bg-blue-50 transition-all group">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center flex-shrink-0 transition-colors">
+          <span class="material-symbols-outlined text-blue-600 text-[20px]">book</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-bold text-slate-900 truncate">{{ st.subject.name }}</p>
+          <p class="text-xs text-slate-500">{{ st.subject.code }} · {{ st.groups.count }} guruh</p>
+        </div>
+        <span class="material-symbols-outlined text-slate-400 group-hover:text-[#00236f] transition-colors">chevron_right</span>
+      </a>
+      {% empty %}
+      <div class="text-center py-8">
+        <span class="material-symbols-outlined text-slate-300 text-[48px]">book_off</span>
+        <p class="text-sm text-slate-500 mt-2">Sizda fan biriktirilmagan</p>
+        <p class="text-xs text-slate-400 mt-1">Kafedra mudiri sizga fan biriktirgandan keyin topshiriq yaratish mumkin</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<div class="space-y-3">
+{% for a in assignments %}
+<div class="card flex items-center gap-4 border border-slate-100 hover:border-[#0058be]/20 transition-colors">
+  <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 {% if a.assignment_type == 'test' %}bg-blue-100 text-blue-600{% elif a.assignment_type == 'written' %}bg-purple-100 text-purple-600{% else %}bg-green-100 text-green-600{% endif %}">
+    <span class="material-symbols-outlined">{% if a.assignment_type == 'test' %}quiz{% elif a.assignment_type == 'written' %}edit_note{% else %}attach_file{% endif %}</span>
+  </div>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-2"><p class="font-bold text-slate-900">{{ a.title }}</p>
+      <span class="text-[10px] font-bold px-2 py-0.5 rounded {% if a.status == 'active' %}bg-green-100 text-green-700{% elif a.status == 'closed' %}bg-slate-100 text-slate-500{% else %}bg-yellow-100 text-yellow-700{% endif %}">{{ a.get_status_display }}</span>
+    </div>
+    <p class="text-xs text-slate-500">{{ a.subject.name }} · {{ a.sub_c }} javob, {{ a.graded_c }} baholandi</p>
+  </div>
+  <div class="text-right flex-shrink-0 text-xs text-slate-400">{{ a.deadline|date:"d.m.Y" }}</div>
+  <a href="{% url 'core:teacher_edit_assignment' pk=a.pk %}" class="flex items-center gap-1 text-[#0058be] text-sm font-bold hover:underline whitespace-nowrap">Tahrirlash <span class="material-symbols-outlined text-[15px]">arrow_forward</span></a>
+  <form method="post" onsubmit="return confirm('“{{ a.title }}” topshirig\'i o\'chirilsinmi?\n\nBu amalni ortga qaytarib bo\'lmaydi.')" class="flex-shrink-0">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete">
+    <input type="hidden" name="assignment_id" value="{{ a.pk }}">
+    <button type="submit" class="w-9 h-9 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="O'chirish">
+      <span class="material-symbols-outlined text-[18px]">delete</span>
+    </button>
+  </form>
+</div>
+{% empty %}
+<div class="card text-center py-12"><span class="material-symbols-outlined text-5xl text-slate-300">assignment</span><p class="text-slate-500 mt-3">Topshiriq yo'q</p></div>
+{% endfor %}
+</div>
+{% endblock %}

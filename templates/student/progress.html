@@ -1,0 +1,121 @@
+{% extends "base/base.html" %}
+{% block title %}Mening natijalarim{% endblock %}
+{% block page_title %}Mening natijalarim{% endblock %}
+{% block page_subtitle %}Fanlar bo'yicha o'zlashtirish tahlili{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_student.html' %}{% endblock %}
+{% block content %}
+<!-- Summary -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="card flex items-center gap-4">
+    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0"><span class="material-symbols-outlined">assignment_turned_in</span></div>
+    <div><div class="text-3xl font-extrabold text-slate-900 font-hl">{{ total_submitted }}</div><div class="text-xs text-slate-500">Jami topshirilgan</div></div>
+  </div>
+  <div class="card flex items-center gap-4">
+    <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0"><span class="material-symbols-outlined">grade</span></div>
+    <div><div class="text-3xl font-extrabold text-slate-900 font-hl">{{ total_graded }}</div><div class="text-xs text-slate-500">Baholangan</div></div>
+  </div>
+  <div class="card flex items-center gap-4">
+    <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 flex-shrink-0"><span class="material-symbols-outlined">trending_up</span></div>
+    <div><div class="text-3xl font-extrabold text-slate-900 font-hl">{{ overall_avg|default:"—" }}</div><div class="text-xs text-slate-500">O'rtacha ball</div></div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <!-- Subject stats -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-5">Fanlar bo'yicha</h3>
+    <div class="space-y-4">
+      {% for s in stats %}
+      <div>
+        <div class="flex justify-between text-sm mb-1.5">
+          <span class="font-semibold text-slate-700">{{ s.name }}</span>
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-400">{{ s.count }} ta</span>
+            <span class="font-bold {% if s.avg >= 80 %}text-green-600{% elif s.avg >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ s.avg }}</span>
+          </div>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2">
+          <div class="h-2 rounded-full transition-all {% if s.avg >= 80 %}bg-green-500{% elif s.avg >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width:{{ s.avg }}%"></div>
+        </div>
+        <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+          <span>Min: {{ s.min }}</span><span>Max: {{ s.max }}</span>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-sm text-slate-400 text-center py-6">Hali baholangan natija yo'q</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Grade distribution -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-5">Baho taqsimoti</h3>
+    {% if stats %}
+    <div class="space-y-3">
+      {% for s in stats %}
+      <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+        <span class="text-sm font-semibold text-slate-700 truncate flex-1">{{ s.name }}</span>
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <div class="w-20 bg-slate-200 rounded-full h-2">
+            <div class="h-2 rounded-full {% if s.avg >= 80 %}bg-green-500{% elif s.avg >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width:{{ s.avg }}%"></div>
+          </div>
+          <span class="text-sm font-bold w-8 text-right {% if s.avg >= 80 %}text-green-600{% elif s.avg >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ s.avg }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8"><span class="material-symbols-outlined text-4xl text-slate-300">bar_chart</span><p class="text-sm text-slate-400 mt-2">Baholangan natijalar yo'q</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Submission history -->
+<div class="card">
+  <h3 class="font-bold text-slate-900 font-hl mb-5">Topshiriqlar tarixi</h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead><tr class="text-xs text-slate-400 uppercase tracking-wider border-b border-slate-100">
+        <th class="pb-3 text-left">Topshiriq</th>
+        <th class="pb-3 text-left">Fan</th>
+        <th class="pb-3 text-left">Tur</th>
+        <th class="pb-3 text-center">AI ball</th>
+        <th class="pb-3 text-center">Yakuniy</th>
+        <th class="pb-3 text-left">Sana</th>
+        <th class="pb-3 text-center">Baho</th>
+      </tr></thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for sub in submissions %}
+        <tr class="hover:bg-slate-50/50">
+          <td class="py-3">
+            <a href="{% url 'core:student_result' pk=sub.pk %}" class="font-semibold text-slate-900 hover:text-[#0058be] truncate max-w-[180px] block">{{ sub.assignment.title }}</a>
+          </td>
+          <td class="py-3 text-slate-500 text-xs">{{ sub.assignment.subject.name }}</td>
+          <td class="py-3">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded {% if sub.assignment.assignment_type == 'test' %}bg-blue-100 text-blue-700{% elif sub.assignment.assignment_type == 'written' %}bg-purple-100 text-purple-700{% else %}bg-green-100 text-green-700{% endif %}">
+              {{ sub.assignment.get_assignment_type_display }}
+            </span>
+          </td>
+          <td class="py-3 text-center text-slate-600">{{ sub.ai_score|floatformat:0|default:"—" }}</td>
+          <td class="py-3 text-center font-bold text-slate-900">{{ sub.final_score|floatformat:0|default:"—" }}</td>
+          <td class="py-3 text-xs text-slate-400">{{ sub.submitted_at|date:"d.m.Y" }}</td>
+          <td class="py-3 text-center">
+            <span class="text-xs font-extrabold px-2 py-0.5 rounded
+              {% if sub.grade_color == 'green' %}bg-green-100 text-green-700
+              {% elif sub.grade_color == 'blue' %}bg-blue-100 text-blue-700
+              {% elif sub.grade_color == 'yellow' %}bg-yellow-100 text-yellow-700
+              {% elif sub.grade_color == 'orange' %}bg-orange-100 text-orange-700
+              {% elif sub.grade_color == 'red' %}bg-red-100 text-red-700
+              {% else %}bg-slate-100 text-slate-500{% endif %}">
+              {{ sub.grade_letter }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="py-10 text-center text-slate-400">Hali topshirilgan ish yo'q</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

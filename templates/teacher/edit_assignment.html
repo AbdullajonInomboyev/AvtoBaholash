@@ -1,0 +1,539 @@
+{% extends "base/base.html" %}
+{% load math_tags %}
+{% block title %}Topshiriq tahrirlash{% endblock %}
+
+{% block page_title %}{{ assignment.title }}{% endblock %}
+{% block page_subtitle %}{{ assignment.subject.name }} · {{ assignment.get_assignment_type_display }} · {{ assignment.get_status_display }}{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Left: questions -->
+  <div class="lg:col-span-2 space-y-5">
+    <!-- Status & actions -->
+    <div class="card flex items-center justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-bold px-3 py-1.5 rounded-lg
+          {% if assignment.status == 'active' %}bg-green-100 text-green-700
+          {% elif assignment.status == 'closed' %}bg-slate-100 text-slate-500
+          {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+          {{ assignment.get_status_display }}
+        </span>
+        <span class="text-sm text-slate-500">{{ questions|length }} ta savol</span>
+        {% if assignment.ai_syllabus_score %}
+        <span class="text-sm font-bold px-2.5 py-1 rounded-lg
+          {% if assignment.ai_syllabus_score >= 85 %}bg-green-50 text-green-700
+          {% elif assignment.ai_syllabus_score >= 65 %}bg-yellow-50 text-yellow-700
+          {% else %}bg-red-50 text-red-700{% endif %}">
+          AI: {{ assignment.ai_syllabus_score|floatformat:0 }}%
+        </span>
+        {% endif %}
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        {% if assignment.status == 'draft' %}
+        <button type="button" onclick="document.getElementById('activate-modal').classList.remove('hidden')" class="flex items-center gap-1.5 bg-[#00236f] text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-[#1e3a8a] transition-colors">
+          <span class="material-symbols-outlined text-[16px]">send</span> Faollashtirish
+        </button>
+        {% elif assignment.status == 'active' %}
+        <form method="post" class="inline">{% csrf_token %}<input type="hidden" name="action" value="close">
+          <button class="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-sm font-bold px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors">
+            <span class="material-symbols-outlined text-[16px]">lock</span> Yopish
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if assignment.ai_syllabus_feedback %}
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800 flex items-start gap-2">
+      <span class="material-symbols-outlined text-blue-500 flex-shrink-0">psychology</span>
+      <p>{{ assignment.ai_syllabus_feedback }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Questions list -->
+    {% if assignment.assignment_type == 'test' %}
+    <div class="card">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-bold text-slate-900 font-hl">Savollar ({{ questions|length }})</h3>
+        <!-- Word import — chiroyli tugma + modal -->
+        <button type="button" onclick="document.getElementById('docx-import-modal').classList.remove('hidden')"
+          class="flex items-center gap-2 bg-gradient-to-r from-[#00236f] to-[#0058be] text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:shadow-lg transition-all">
+          <span class="material-symbols-outlined text-[18px]">upload_file</span>
+          <span>Word import</span>
+        </button>
+      </div>
+      <div class="space-y-3">
+        {% for q in questions %}
+        <div class="border border-slate-100 rounded-xl p-4 hover:border-blue-300 hover:shadow-md hover:bg-blue-50/20 transition-all relative group">
+          <a href="{% url 'core:teacher_edit_question' q.pk %}" class="absolute inset-0 rounded-xl z-0"></a>
+
+          <!-- Yuqori qator: tartib raqami, matn, tag'lar, action tugmalari -->
+          <div class="flex justify-between items-start gap-3 mb-3 relative pointer-events-none">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-2 flex-wrap">
+                <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-[#00236f] to-[#0058be] text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">{{ q.order }}</span>
+                {% if q.topic %}<span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">{{ q.topic }}</span>{% endif %}
+                <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">{{ q.points }}b</span>
+                {% if q.difficulty %}
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full
+                  {% if q.difficulty == 'easy' %}bg-green-100 text-green-700
+                  {% elif q.difficulty == 'hard' %}bg-red-100 text-red-700
+                  {% else %}bg-slate-100 text-slate-600{% endif %}">{{ q.get_difficulty_display }}</span>
+                {% endif %}
+              </div>
+
+              <!-- Savol matni (LaTeX bilan) -->
+              <div class="text-sm font-semibold text-slate-900 leading-relaxed mb-1 latex-text">{{ q.text|auto_math|safe }}</div>
+
+              <!-- Savol rasmi -->
+              {% if q.image %}
+              <div class="mt-2 mb-1">
+                <img src="{{ q.image.url }}" class="max-h-32 rounded-lg border border-slate-200 bg-slate-50 object-contain">
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="flex items-center gap-1 pointer-events-auto relative z-10 flex-shrink-0">
+              <span class="text-blue-400 group-hover:text-blue-600 group-hover:bg-blue-100 transition-all p-2 rounded-lg" title="Tahrirlash">
+                <span class="material-symbols-outlined text-[18px]">edit</span>
+              </span>
+              <form method="post" onsubmit="event.stopPropagation(); return confirm('O\'chirilsinmi?')" class="flex-shrink-0">
+                {% csrf_token %}<input type="hidden" name="action" value="del_question">
+                <input type="hidden" name="qid" value="{{ q.pk }}">
+                <button type="submit" class="text-red-400 hover:text-red-600 hover:bg-red-50 transition-all p-2 rounded-lg">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Variantlar grid (rasm bilan) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pl-1 relative pointer-events-none">
+            {% for key, text, img_url in q.get_options %}
+            <div class="flex items-start gap-2 p-2 rounded-lg
+              {% if key == q.correct_answer %}bg-green-50 border border-green-200{% else %}bg-slate-50/50 border border-slate-100{% endif %}">
+              <span class="w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center flex-shrink-0
+                {% if key == q.correct_answer %}bg-green-600 text-white{% else %}bg-slate-200 text-slate-600{% endif %}">
+                {% if key == q.correct_answer %}✓{% else %}{{ key }}{% endif %}
+              </span>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs {% if key == q.correct_answer %}text-green-800 font-semibold{% else %}text-slate-700{% endif %} latex-text">{{ text|auto_math|safe }}</div>
+                {% if img_url %}
+                <img src="{{ img_url }}" class="mt-1.5 max-h-20 rounded border border-slate-200 bg-white object-contain">
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl">
+          <span class="material-symbols-outlined text-4xl text-slate-300">quiz</span>
+          <p class="text-sm text-slate-500 mt-2">Hali savollar qo'shilmagan</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Add question form -->
+    {% if assignment.status == 'draft' %}
+    <div class="card">
+      <h3 class="font-bold text-slate-900 font-hl mb-4">Yangi savol qo'shish</h3>
+      <form method="post">
+        {% csrf_token %}<input type="hidden" name="action" value="add_question">
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Savol matni *</label>
+            <textarea name="text" rows="2" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be] resize-none" placeholder="Savol matnini kiriting..."></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">A variant *</label>
+              <input name="option_a" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]" placeholder="A variant">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">B variant *</label>
+              <input name="option_b" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]" placeholder="B variant">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">C variant *</label>
+              <input name="option_c" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]" placeholder="C variant">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">D variant</label>
+              <input name="option_d" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]" placeholder="D variant (ixtiyoriy)">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">To'g'ri javob *</label>
+              <select name="correct_answer" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+                <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Mavzu</label>
+              <input name="topic" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]" placeholder="Mavzu nomi">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Qiyinlik darajasi</label>
+              <select name="difficulty" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+                <option value="easy">Oson</option>
+                <option value="medium" selected>O'rta</option>
+                <option value="hard">Qiyin</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Ball</label>
+              <input type="number" name="points" min="1" max="100" value="1" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+            </div>
+          </div>
+          <button type="submit" class="flex items-center gap-2 bg-[#00236f] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-[#1e3a8a] transition-colors">
+            <span class="material-symbols-outlined text-[16px]">add</span> Savol qo'shish
+          </button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="card">
+      <h3 class="font-bold text-slate-900 font-hl mb-2">Topshiriq ma'lumotlari</h3>
+      <p class="text-sm text-slate-500 mb-1"><strong>Tavsif:</strong> {{ assignment.description|default:"—" }}</p>
+      <p class="text-sm text-slate-500"><strong>Ko'rsatmalar:</strong> {{ assignment.instructions|default:"—" }}</p>
+      {% if assignment.assignment_type == 'file' %}
+      <p class="text-sm text-slate-500 mt-1"><strong>Fayl turlari:</strong> {{ assignment.allowed_file_types|join:", "|default:"Belgilanmagan" }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: info panel -->
+  <div class="space-y-4">
+    <div class="card">
+      <h4 class="font-bold text-slate-900 text-sm mb-3 font-hl">Topshiriq ma'lumotlari</h4>
+      <a href="/assessment/pdf/{{ assignment.pk }}/" class="w-full mb-2 flex items-center justify-center gap-2 bg-slate-100 text-slate-700 py-2 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">
+        <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span> PDF yuklab olish
+      </a>
+      <a href="{% url 'core:teacher_topic_quota' pk=assignment.pk %}" class="w-full mb-3 flex items-center justify-center gap-2 bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors">
+        <span class="material-symbols-outlined text-[16px]">tune</span> Mavzu kvotasi
+      </a>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between"><dt class="text-slate-500">Muddat</dt><dd class="font-semibold">{{ assignment.deadline|date:"d.m.Y H:i" }}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">Max ball</dt><dd class="font-semibold">{{ assignment.max_score|floatformat:0 }}</dd></div>
+        {% if assignment.assignment_type == 'test' %}
+        <div class="flex justify-between"><dt class="text-slate-500">Davomiylik</dt><dd class="font-semibold">{{ assignment.duration_minutes }} daqiqa</dd></div>
+        {% endif %}
+        <div class="flex justify-between"><dt class="text-slate-500">Javoblar</dt><dd class="font-semibold text-[#0058be]"><a href="{% url 'core:teacher_grade_book' %}?assignment={{ assignment.pk }}">{{ assignment.submissions_count }} ta</a></dd></div>
+      </dl>
+
+      <!-- Tahlilni ko'rsatish toggle -->
+      <form method="post" class="mt-4 pt-4 border-t border-slate-100">
+        {% csrf_token %}<input type="hidden" name="action" value="save_info">
+        <input type="hidden" name="title" value="{{ assignment.title }}">
+        <input type="hidden" name="description" value="{{ assignment.description }}">
+        <input type="hidden" name="deadline" value="{{ assignment.deadline|date:'Y-m-d\TH:i' }}">
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input type="checkbox" name="show_review_to_student"
+            {% if assignment.show_review_to_student %}checked{% endif %}
+            onchange="this.form.submit()"
+            class="rounded border-slate-300 mt-0.5">
+          <div class="flex-1">
+            <p class="text-xs font-bold text-slate-700">Talabaga savol tahlilini ko'rsatish</p>
+            <p class="text-[10px] text-slate-500 leading-snug mt-0.5">{% if assignment.show_review_to_student %}Yoqilgan: talaba o'z javoblarini ko'radi{% else %}O'chirilgan: faqat ball ko'rinadi{% endif %}</p>
+          </div>
+        </label>
+      </form>
+    </div>
+    <div class="card">
+      <h4 class="font-bold text-slate-900 text-sm mb-3 font-hl">Guruhlar</h4>
+      <div class="space-y-1">
+        {% for g in assignment.groups.all %}
+        <span class="inline-block bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-lg mr-1">{{ g.name }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% if syllabus %}
+    <div class="card">
+      <h4 class="font-bold text-slate-900 text-sm mb-3 font-hl">Sillabus mavzulari</h4>
+      <ul class="space-y-1">
+        {% for t in syllabus.topics %}
+        <li class="text-xs text-slate-600 flex items-start gap-1.5"><span class="mt-1 w-1.5 h-1.5 rounded-full bg-[#0058be] flex-shrink-0"></span>{{ t }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Word import modal — drag&drop bilan -->
+<div id="docx-import-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg my-4">
+    <div class="flex justify-between mb-5">
+      <div>
+        <h3 class="font-bold text-slate-900 text-lg" style="font-family:'Manrope',sans-serif">📄 Word fayldan import</h3>
+        <p class="text-xs text-slate-500 mt-1">Test savollarini Word jadvalidan yuklang</p>
+      </div>
+      <button onclick="closeDocxModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+        <span class="material-symbols-outlined text-slate-400">close</span>
+      </button>
+    </div>
+
+    <!-- Format ko'rsatmasi -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-xs text-blue-800">
+      <p class="font-bold mb-1">Word jadvalda ustunlar:</p>
+      <p>№ | Savol matni | <strong>To'g'ri javob</strong> | Muqobil 1 | Muqobil 2 | Muqobil 3</p>
+      <p class="mt-1 text-blue-600">✓ Formula, rasm, LaTeX qo'llab-quvvatlanadi</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="docx-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="upload_docx">
+      <input type="file" name="docx_file" accept=".docx" id="docx-file" class="hidden" onchange="onFileSelected(this)">
+
+      <!-- Drag & drop zona -->
+      <div id="docx-drop-zone" onclick="document.getElementById('docx-file').click()"
+        class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+        <span class="material-symbols-outlined text-slate-400 text-[48px]">cloud_upload</span>
+        <p class="text-sm font-bold text-slate-700 mt-2" id="docx-dz-title">Faylni shu yerga torting yoki bosing</p>
+        <p class="text-xs text-slate-400 mt-1" id="docx-dz-subtitle">Faqat .docx fayllar — maks. 10 MB</p>
+      </div>
+
+      <!-- Yuklanish progress -->
+      <div id="docx-progress" class="hidden mt-4">
+        <div class="flex items-center justify-between text-xs mb-1">
+          <span class="font-bold text-slate-700" id="docx-progress-name">fayl.docx</span>
+          <span class="text-slate-500" id="docx-progress-pct">0%</span>
+        </div>
+        <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div id="docx-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-[#00236f] rounded-full transition-all" style="width:0%"></div>
+        </div>
+      </div>
+
+      <button type="button" id="docx-submit-btn" disabled onclick="submitDocxForm()"
+        class="w-full mt-5 bg-[#00236f] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1e3a8a] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+        Import qilish
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+let _docxFile = null;
+
+function onFileSelected(input) {
+  if (!input.files.length) return;
+  const f = input.files[0];
+  if (f.size > 10 * 1024 * 1024) {
+    alert("Fayl juda katta — maks. 10 MB");
+    return;
+  }
+  _docxFile = f;
+  document.getElementById('docx-dz-title').textContent = f.name;
+  document.getElementById('docx-dz-subtitle').textContent = `${(f.size/1024).toFixed(0)} KB`;
+  document.getElementById('docx-drop-zone').classList.add('border-blue-400','bg-blue-50');
+  document.getElementById('docx-submit-btn').disabled = false;
+}
+
+function submitDocxForm() {
+  if (!_docxFile) return;
+  const form = document.getElementById('docx-form');
+  const xhr  = new XMLHttpRequest();
+  const fd   = new FormData(form);
+
+  // Progress ko'rsatish
+  document.getElementById('docx-progress').classList.remove('hidden');
+  document.getElementById('docx-progress-name').textContent = _docxFile.name;
+  document.getElementById('docx-submit-btn').textContent = "Yuklanmoqda...";
+  document.getElementById('docx-submit-btn').disabled = true;
+
+  xhr.upload.addEventListener('progress', e => {
+    if (e.lengthComputable) {
+      const pct = Math.round((e.loaded / e.total) * 100);
+      document.getElementById('docx-progress-bar').style.width = pct + '%';
+      document.getElementById('docx-progress-pct').textContent = pct + '%';
+    }
+  });
+
+  xhr.addEventListener('load', () => {
+    document.getElementById('docx-submit-btn').textContent = "Tayyor — qayta yuklash...";
+    setTimeout(() => location.reload(), 800);
+  });
+
+  xhr.addEventListener('error', () => {
+    alert("Yuklashda xato yuz berdi");
+    document.getElementById('docx-submit-btn').disabled = false;
+    document.getElementById('docx-submit-btn').textContent = "Qayta urinish";
+  });
+
+  xhr.open('POST', window.location.href);
+  xhr.send(fd);
+}
+
+function closeDocxModal() {
+  document.getElementById('docx-import-modal').classList.add('hidden');
+  _docxFile = null;
+  document.getElementById('docx-progress').classList.add('hidden');
+  document.getElementById('docx-progress-bar').style.width = '0%';
+  document.getElementById('docx-submit-btn').disabled = true;
+  document.getElementById('docx-submit-btn').textContent = "Import qilish";
+  document.getElementById('docx-dz-title').textContent = "Faylni shu yerga torting yoki bosing";
+  document.getElementById('docx-dz-subtitle').textContent = "Faqat .docx fayllar — maks. 10 MB";
+  document.getElementById('docx-drop-zone').classList.remove('border-blue-400','bg-blue-50');
+}
+
+// Drag & drop
+(function() {
+  const dz = document.getElementById('docx-drop-zone');
+  if (!dz) return;
+  ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {
+    e.preventDefault();
+    dz.classList.add('border-blue-500','bg-blue-100');
+  }));
+  ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {
+    e.preventDefault();
+    dz.classList.remove('border-blue-500','bg-blue-100');
+  }));
+  dz.addEventListener('drop', e => {
+    if (e.dataTransfer.files.length) {
+      document.getElementById('docx-file').files = e.dataTransfer.files;
+      onFileSelected(document.getElementById('docx-file'));
+    }
+  });
+})();
+</script>
+
+
+<!-- Faollashtirish modal — talabalar tanlash -->
+{% if assignment.status == 'draft' %}
+<div id="activate-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl my-4 max-h-[85vh] flex flex-col">
+    <div class="flex justify-between items-start mb-4">
+      <div>
+        <h3 class="font-bold text-slate-900 text-lg" style="font-family:'Manrope',sans-serif">Topshiriqni faollashtirish</h3>
+        <p class="text-xs text-slate-500 mt-1">Talabalarni tanlang. Tanlangan talabalarga xabarnoma yuboriladi.</p>
+      </div>
+      <button type="button" onclick="document.getElementById('activate-modal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+        <span class="material-symbols-outlined text-slate-400">close</span>
+      </button>
+    </div>
+
+    <form method="post" class="flex-1 flex flex-col overflow-hidden">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="activate">
+
+      <!-- Toggle all -->
+      <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-xl mb-3">
+        <label class="flex items-center gap-2 cursor-pointer flex-1">
+          <input type="checkbox" id="select-all-students" checked
+            onchange="document.querySelectorAll('input[name=student_ids]').forEach(c => c.checked = this.checked); updateCount();"
+            class="w-4 h-4 rounded text-blue-600">
+          <span class="text-sm font-bold text-blue-900">Barchasini tanlash</span>
+        </label>
+        <span id="selected-count" class="text-xs font-bold bg-blue-600 text-white px-3 py-1 rounded-full">{{ group_students|length }} / {{ group_students|length }}</span>
+      </div>
+
+      <!-- Qidiruv -->
+      <div class="relative mb-3">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+        <input type="text" id="student-search" oninput="filterStudents()" placeholder="Ism yoki guruh bo'yicha qidirish..."
+          class="w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+      </div>
+
+      <!-- Talabalar ro'yxati (scroll) -->
+      <div class="flex-1 overflow-y-auto border border-slate-200 rounded-xl bg-slate-50/30">
+        {% if group_students %}
+        {% regroup group_students by group as students_by_group %}
+        {% for group in students_by_group %}
+        <div class="border-b border-slate-100 last:border-b-0">
+          <!-- Guruh sarlavhasi -->
+          <div class="flex items-center justify-between bg-slate-100 px-3 py-2 sticky top-0">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked
+                onchange="document.querySelectorAll('[data-group=\'{{ group.grouper.pk }}\']').forEach(c => c.checked = this.checked); updateCount();"
+                class="w-4 h-4 rounded text-blue-600">
+              <span class="text-xs font-black text-slate-700 uppercase tracking-wider">{{ group.grouper.name|default:"Guruhsiz" }}</span>
+            </label>
+            <span class="text-[10px] text-slate-500 font-bold">{{ group.list|length }} talaba</span>
+          </div>
+          <!-- Talabalar -->
+          {% for s in group.list %}
+          <label class="student-row flex items-center gap-3 px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-b-0"
+            data-name="{{ s.full_name|lower }}" data-group-name="{{ s.group.name|default:'' |lower }}">
+            <input type="checkbox" name="student_ids" value="{{ s.pk }}"
+              data-group="{{ s.group.pk|default:'0' }}"
+              checked
+              onchange="updateCount();"
+              class="w-4 h-4 rounded text-blue-600 flex-shrink-0">
+            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#00236f] to-[#0058be] text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+              {{ s.first_name|slice:":1" }}{{ s.last_name|slice:":1" }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-slate-900 truncate">{{ s.full_name }}</p>
+              <p class="text-[10px] text-slate-500 truncate">{{ s.username }}{% if s.is_accessible %} · <span class="text-purple-600">♿ Inklyuziv</span>{% endif %}</p>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="p-8 text-center">
+          <span class="material-symbols-outlined text-slate-300 text-[48px]">groups</span>
+          <p class="text-sm text-slate-500 mt-2 font-semibold">Talabalar yo'q</p>
+          <p class="text-xs text-slate-400 mt-1">Bu topshiriqning guruhlarida talabalar yo'q. Kafedra mudiriga murojaat qiling.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Action tugmalari -->
+      <div class="flex gap-3 mt-4 pt-4 border-t border-slate-100">
+        <button type="button" onclick="document.getElementById('activate-modal').classList.add('hidden')" class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200">
+          Bekor qilish
+        </button>
+        <button type="submit" {% if not group_students %}disabled{% endif %}
+          class="flex-1 px-4 py-2.5 bg-[#00236f] text-white rounded-xl font-bold text-sm hover:bg-[#1e3a8a] flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed">
+          <span class="material-symbols-outlined text-[16px]">send</span> Faollashtirish
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function updateCount() {
+  const all = document.querySelectorAll('input[name=student_ids]');
+  const checked = document.querySelectorAll('input[name=student_ids]:checked');
+  const total = all.length;
+  const sel = checked.length;
+  const span = document.getElementById('selected-count');
+  if (span) span.textContent = sel + ' / ' + total;
+  const selAll = document.getElementById('select-all-students');
+  if (selAll) selAll.checked = (sel === total);
+}
+
+function filterStudents() {
+  const q = document.getElementById('student-search').value.toLowerCase();
+  document.querySelectorAll('.student-row').forEach(row => {
+    const name = row.dataset.name || '';
+    const grp  = row.dataset.groupName || '';
+    row.style.display = (name.includes(q) || grp.includes(q)) ? 'flex' : 'none';
+  });
+}
+</script>
+{% endif %}
+
+<script>
+// Savol kartochkalari yuklanganda LaTeX'ni render qilamiz
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      const els = document.querySelectorAll('.latex-text');
+      if (els.length) {
+        MathJax.typesetPromise(Array.from(els)).catch(e => console.warn('MathJax:', e));
+      }
+    }
+  }, 300);
+});
+</script>
+{% endblock %}

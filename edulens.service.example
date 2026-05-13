@@ -1,0 +1,22 @@
+# /etc/systemd/system/edulens.service
+[Unit]
+Description=EduLens Django Application
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/edulens
+Environment="DJANGO_SETTINGS_MODULE=edulens.settings_prod"
+EnvironmentFile=/var/www/edulens/.env
+ExecStart=/var/www/edulens/venv/bin/gunicorn \
+    --config /var/www/edulens/gunicorn.conf.py \
+    edulens.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,56 @@
+{% extends "base/base.html" %}
+{% block title %}Tizim tahlili{% endblock %}
+{% block page_title %}Tizim tahlili{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_admin.html' %}{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="card text-center"><div class="text-3xl font-extrabold font-hl text-[#00236f]">{{ total_users }}</div><p class="text-xs text-slate-500 mt-1">Foydalanuvchilar</p></div>
+  <div class="card text-center"><div class="text-3xl font-extrabold font-hl text-green-600">{{ total_assignments }}</div><p class="text-xs text-slate-500 mt-1">Topshiriqlar</p></div>
+  <div class="card text-center"><div class="text-3xl font-extrabold font-hl text-[#0058be]">{{ total_submissions }}</div><p class="text-xs text-slate-500 mt-1">Javoblar</p></div>
+  <div class="card text-center"><div class="text-3xl font-extrabold font-hl text-purple-600">{{ avg_score }}</div><p class="text-xs text-slate-500 mt-1">O'rtacha ball</p></div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">Oylik o'sish dinamikasi</h3>
+    <canvas id="growthChart" height="220"></canvas>
+  </div>
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">Kafedralar taqqoslama</h3>
+    <div class="space-y-3">
+      {% for d in departments %}
+      <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-slate-900 truncate">{{ d.name }}</p>
+          <p class="text-xs text-slate-400">{{ d.teacher_count }} o'qituvchi · {{ d.student_count }} talaba</p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-bold {% if d.avg >= 75 %}text-green-600{% elif d.avg %}text-yellow-600{% else %}text-slate-400{% endif %}">
+            {% if d.avg %}{{ d.avg|floatformat:1 }}{% else %}—{% endif %}
+          </p>
+          <p class="text-[10px] text-slate-400">o'rtacha</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const m = {{ months_json|safe }};
+new Chart(document.getElementById('growthChart'), {
+  type: 'line',
+  data: {
+    labels: m.map(x => x.label),
+    datasets: [
+      { label: 'Yangi foydalanuvchilar', data: m.map(x => x.users), borderColor:'#00236f', backgroundColor:'#00236f22', tension:0.4, fill:true },
+      { label: 'Topshiriqlar', data: m.map(x => x.assignments), borderColor:'#0058be', backgroundColor:'#0058be22', tension:0.4, fill:true },
+    ]
+  },
+  options: { responsive: true, scales: { y: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,8 @@
+# EduLens Cron jobs
+# Crontab ga qo'shish: crontab -e
+
+# Har 6 soatda deadline eslatmalari va feedback escalation
+0 */6 * * * /var/www/edulens/venv/bin/python /var/www/edulens/manage.py send_reminders >> /var/www/edulens/logs/cron.log 2>&1
+
+# Har kuni kechasi staticfiles yig'ish
+0 2 * * * /var/www/edulens/venv/bin/python /var/www/edulens/manage.py collectstatic --noinput >> /var/www/edulens/logs/cron.log 2>&1

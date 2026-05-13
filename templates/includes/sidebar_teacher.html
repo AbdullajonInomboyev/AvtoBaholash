@@ -1,0 +1,20 @@
+{% with url_name=request.resolver_match.url_name app=request.resolver_match.app_name|default:'' %}
+<a href="{% url 'core:teacher_dashboard' %}" class="nav-link {% if url_name == 'teacher_dashboard' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">dashboard</span>Boshqaruv paneli
+</a>
+<a href="{% url 'core:teacher_subjects' %}" class="nav-link {% if url_name == 'teacher_subjects' or url_name == 'teacher_upload_syllabus' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">book</span>Fanlarim
+</a>
+<a href="{% url 'core:teacher_assignments' %}" class="nav-link {% if url_name == 'teacher_assignments' or url_name == 'teacher_edit_assignment' or url_name == 'teacher_create_assignment' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">assignment</span>Topshiriqlar
+</a>
+<a href="{% url 'core:teacher_grade_book' %}" class="nav-link {% if url_name == 'teacher_grade_book' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">grade</span>Baholash jurnali
+</a>
+<a href="{% url 'core:teacher_feedback' %}" class="nav-link {% if url_name == 'teacher_feedback' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">feedback</span>Feedbacklar
+</a>
+<a href="{% url 'analytics:teacher' %}" class="nav-link {% if app == 'analytics' and url_name == 'teacher' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">bar_chart</span>Statistika
+</a>
+{% endwith %}

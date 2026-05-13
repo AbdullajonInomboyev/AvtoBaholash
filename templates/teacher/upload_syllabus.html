@@ -1,0 +1,32 @@
+{% extends "base/base.html" %}
+{% block title %}Sillabus yuklash{% endblock %}
+{% block page_title %}Sillabus: {{ subject.name }}{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block content %}
+<div class="max-w-xl mx-auto">
+{% if existing %}
+<div class="card mb-5 bg-green-50 border-green-200 border">
+  <div class="flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-green-600">check_circle</span><h3 class="font-bold text-green-900">Mavjud sillabus</h3></div>
+  <p class="text-xs text-slate-500 mb-3">Yuklangan: {{ existing.uploaded_at|date:"d.m.Y" }} · {{ existing.topics|length }} mavzu</p>
+  <div class="flex flex-wrap gap-1">{% for t in existing.topics %}<span class="bg-white border border-green-200 text-green-800 text-xs px-2 py-0.5 rounded">{{ t|truncatechars:40 }}</span>{% endfor %}</div>
+</div>
+{% endif %}
+<div class="card">
+  <h3 class="font-bold text-slate-900 font-hl mb-4">{% if existing %}Yangilash{% else %}Yuklash{% endif %}</h3>
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <div class="mb-4">
+      <label class="text-sm font-bold text-slate-700 block mb-1">Sillabus fayli (PDF/DOCX, ixtiyoriy)</label>
+      <input type="file" name="file" accept=".pdf,.docx" class="text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+    </div>
+    <div class="mb-5">
+      <label class="text-sm font-bold text-slate-700 block mb-1">Mavzular ro'yxati * <span class="text-slate-400 font-normal">(har qatorga 1 mavzu)</span></label>
+      <textarea name="topics" rows="10" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be] resize-none font-mono" placeholder="Mavzu 1&#10;Mavzu 2&#10;Mavzu 3">{% if existing %}{{ existing.topics|join:"
+" }}{% endif %}</textarea>
+    </div>
+    <button type="submit" class="w-full flex items-center justify-center gap-2 bg-[#00236f] text-white py-3 rounded-xl font-bold hover:bg-[#1e3a8a] transition-colors">
+      <span class="material-symbols-outlined text-[17px]">upload</span> Saqlash
+    </button>
+  </form>
+</div>
+</div>
+{% endblock %}

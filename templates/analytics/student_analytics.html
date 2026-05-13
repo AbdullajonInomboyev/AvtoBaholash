@@ -1,0 +1,100 @@
+{% extends "base/base.html" %}
+{% block title %}Mening rivojlanishim{% endblock %}
+{% block page_title %}Mening rivojlanishim{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_student.html' %}{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl text-[#0058be]">{{ total_completed }}</div>
+    <p class="text-xs text-slate-500 mt-1">Baholangan ishlar</p>
+  </div>
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl {% if overall_avg >= 75 %}text-green-600{% elif overall_avg %}text-yellow-600{% else %}text-slate-400{% endif %}">
+      {{ overall_avg|default:"—" }}
+    </div>
+    <p class="text-xs text-slate-500 mt-1">Umumiy o'rtacha</p>
+  </div>
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl text-slate-700">{{ subject_stats|length }}</div>
+    <p class="text-xs text-slate-500 mt-1">Fan</p>
+  </div>
+</div>
+
+{% if best_subject or weak_subject %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+  {% if best_subject %}
+  <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-4">
+    <span class="material-symbols-outlined text-3xl text-green-600">emoji_events</span>
+    <div>
+      <p class="text-xs text-green-600 font-bold">Eng kuchli fan</p>
+      <p class="font-bold text-slate-900">{{ best_subject.name }}</p>
+      <p class="text-sm text-green-700 font-semibold">O'rtacha: {{ best_subject.avg }}</p>
+    </div>
+  </div>
+  {% endif %}
+  {% if weak_subject %}
+  <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-4">
+    <span class="material-symbols-outlined text-3xl text-orange-500">trending_down</span>
+    <div>
+      <p class="text-xs text-orange-600 font-bold">Mustahkamlash kerak</p>
+      <p class="font-bold text-slate-900">{{ weak_subject.name }}</p>
+      <p class="text-sm text-orange-700 font-semibold">O'rtacha: {{ weak_subject.avg }}</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">Vaqt bo'yicha dinamika</h3>
+    {% if trend_json != "[]" %}
+    <canvas id="trendChart" height="220"></canvas>
+    {% else %}
+    <div class="text-center py-12 text-slate-400"><span class="material-symbols-outlined text-4xl">show_chart</span><p class="mt-2 text-sm">Baholangan ishlar bo'lsa grafik ko'rinadi</p></div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">Fanlar bo'yicha taqqoslama</h3>
+    {% if subject_stats %}
+    <canvas id="subjectChart" height="220"></canvas>
+    {% else %}
+    <div class="text-center py-12 text-slate-400"><span class="material-symbols-outlined text-4xl">bar_chart</span><p class="mt-2 text-sm">Ma'lumot yo'q</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const trend = {{ trend_json|safe }};
+const subjectStats = {{ subject_stats_json|safe }};
+if (trend.length && document.getElementById('trendChart')) {
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: trend.map(t => t.label),
+      datasets: [{ label: 'Ball', data: trend.map(t => t.score),
+        borderColor: '#0058be', backgroundColor: '#0058be22',
+        tension: 0.4, fill: true, pointRadius: 4 }]
+    },
+    options: { responsive: true, scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+  });
+}
+if (subjectStats.length && document.getElementById('subjectChart')) {
+  new Chart(document.getElementById('subjectChart'), {
+    type: 'bar',
+    data: {
+      labels: subjectStats.map(s => s.name.substring(0, 15)),
+      datasets: [
+        { label: "O'rtacha", data: subjectStats.map(s => s.avg), backgroundColor: '#0058be99', borderRadius: 4 },
+        { label: 'Max', data: subjectStats.map(s => s.max), backgroundColor: '#22c55e55', borderRadius: 4 },
+      ]
+    },
+    options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+  });
+}
+</script>
+{% endblock %}

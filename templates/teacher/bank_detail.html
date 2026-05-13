@@ -1,0 +1,238 @@
+{% extends "base/base.html" %}
+{% block title %}{{ bank.title }}{% endblock %}
+{% block page_title %}{{ bank.title }}{% endblock %}
+{% block page_subtitle %}{{ bank.subject.name }} · {{ bank.bank_questions.count }} ta savol{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Left: Questions -->
+  <div class="lg:col-span-2 space-y-5">
+
+    <!-- Actions bar -->
+    <div class="card flex flex-wrap items-center gap-3">
+      <!-- Filter -->
+      <form method="get" class="flex items-center gap-2 flex-1">
+        <select name="topic" onchange="this.form.submit()" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+          <option value="">Barcha mavzular</option>
+          {% for t in topics %}<option value="{{ t }}" {% if topic_filter == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
+        <select name="diff" onchange="this.form.submit()" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+          <option value="">Barcha qiyinlik</option>
+          <option value="easy" {% if diff_filter == 'easy' %}selected{% endif %}>Oson</option>
+          <option value="medium" {% if diff_filter == 'medium' %}selected{% endif %}>O'rtacha</option>
+          <option value="hard" {% if diff_filter == 'hard' %}selected{% endif %}>Qiyin</option>
+        </select>
+        {% if topic_filter or diff_filter %}<a href="?" class="text-xs text-slate-500 hover:text-slate-700">Tozalash</a>{% endif %}
+      </form>
+      <!-- Bulk actions -->
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="check_duplicates">
+        <button class="flex items-center gap-1.5 bg-purple-100 text-purple-700 text-sm font-bold px-3 py-2 rounded-lg hover:bg-purple-200 transition-colors">
+          <span class="material-symbols-outlined text-[15px]">psychology</span> AI tekshir
+        </button>
+      </form>
+      <!-- Import docx -->
+      <form method="post" enctype="multipart/form-data">{% csrf_token %}
+        <input type="hidden" name="action" value="import_docx">
+        <input type="file" name="docx_file" accept=".docx" class="hidden" id="docx-inp" onchange="this.form.submit()">
+        <button type="button" onclick="document.getElementById('docx-inp').click()" class="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-sm font-bold px-3 py-2 rounded-lg hover:bg-slate-200 transition-colors">
+          <span class="material-symbols-outlined text-[15px]">upload_file</span> Word import
+        </button>
+      </form>
+      <!-- Use in assignment -->
+      {% if my_assignments %}
+      <button onclick="document.getElementById('use-modal').classList.remove('hidden')" class="flex items-center gap-1.5 bg-green-600 text-white text-sm font-bold px-3 py-2 rounded-lg hover:bg-green-700 transition-colors">
+        <span class="material-symbols-outlined text-[15px]">add_task</span> Topshiriqqa qo'sh
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Questions list -->
+    <div id="questions-form">
+      {% if questions %}
+      <div class="space-y-3" id="q-list">
+        {% for q in questions %}
+        <div class="card border {% if q.is_duplicate %}border-orange-200 bg-orange-50/30{% else %}border-slate-100{% endif %} hover:border-slate-200 transition-colors">
+          <div class="flex items-start gap-3">
+            <input type="checkbox" class="q-checkbox mt-1.5 rounded border-slate-300 text-[#00236f]" value="{{ q.pk }}">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap mb-2">
+                <span class="text-sm font-bold text-slate-900">{{ q.text|truncatechars:120 }}</span>
+                {% if q.is_duplicate %}
+                <span class="text-[10px] bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[11px]">warning</span> Takroriy
+                </span>
+                {% endif %}
+              </div>
+              <div class="grid grid-cols-2 gap-1 text-xs text-slate-500 mb-2">
+                {% for key, text, img_url in q.get_options %}
+                <span class="{% if key == q.correct_answer %}text-green-700 font-semibold{% endif %}">
+                  {% if key == q.correct_answer %}✓{% endif %} {{ key }}: {{ text|truncatechars:35 }}
+                </span>
+                {% endfor %}
+              </div>
+              <div class="flex items-center gap-3">
+                {% if q.topic %}<span class="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded">{{ q.topic }}</span>{% endif %}
+                <span class="text-[10px] px-2 py-0.5 rounded font-bold
+                  {% if q.difficulty == 'easy' %}bg-green-100 text-green-700
+                  {% elif q.difficulty == 'hard' %}bg-red-100 text-red-700
+                  {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                  {{ q.get_difficulty_display }}
+                </span>
+                {% if q.use_count > 0 %}
+                <span class="text-[10px] text-slate-400">{{ q.use_count }}x ishlatilgan</span>
+                {% endif %}
+                {% if q.is_duplicate and q.duplicate_note %}
+                <span class="text-[10px] text-orange-500">{{ q.duplicate_note }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <form method="post" class="flex-shrink-0">{% csrf_token %}
+              <input type="hidden" name="action" value="delete_question">
+              <input type="hidden" name="qid" value="{{ q.pk }}">
+              <button class="text-slate-300 hover:text-red-500 transition-colors p-1">
+                <span class="material-symbols-outlined text-[17px]">delete</span>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card text-center py-12">
+        <span class="material-symbols-outlined text-5xl text-slate-300">quiz</span>
+        <p class="text-slate-500 mt-3">Hali savollar yo'q</p>
+        <p class="text-xs text-slate-400 mt-1">Qo'lda qo'shing yoki Word fayldan import qiling</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: Add question -->
+  <div class="space-y-4">
+    <div class="card">
+      <h4 class="font-bold text-slate-900 font-hl mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px] text-[#0058be]">add_circle</span>
+        Savol qo'shish
+      </h4>
+      <form method="post" enctype="multipart/form-data" class="space-y-3">
+        {% csrf_token %}<input type="hidden" name="action" value="add_question">
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Savol matni *</label>
+          <textarea name="text" rows="3" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be] resize-none" placeholder="Savol..."></textarea>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">A variant *</label>
+          <input name="option_a" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">B variant *</label>
+          <input name="option_b" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">C variant *</label>
+          <input name="option_c" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">D variant</label>
+          <input name="option_d" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">To'g'ri javob *</label>
+            <select name="correct_answer" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+              <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Qiyinlik</label>
+            <select name="difficulty" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+              <option value="easy">Oson</option>
+              <option value="medium" selected>O'rtacha</option>
+              <option value="hard">Qiyin</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Mavzu</label>
+          <input name="topic" list="topics-list" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]" placeholder="Mavzu nomi">
+          <datalist id="topics-list">
+            {% for t in topics %}<option value="{{ t }}">{% endfor %}
+          </datalist>
+        </div>
+        <button type="submit" class="w-full bg-[#00236f] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#1e3a8a] transition-colors flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[16px]">add</span> Qo'shish
+        </button>
+      </form>
+    </div>
+
+    <div class="card text-sm text-slate-500 space-y-1.5">
+      <p class="font-semibold text-slate-700 text-xs uppercase tracking-wider mb-2">Yordam</p>
+      <p>• Word (.docx) fayldan test savollarini to'plab import qiling</p>
+      <p>• "AI tekshir" tugmasi takroriy savollarni aniqlaydi</p>
+      <p>• Savollarni tanlang va "Topshiriqqa qo'sh" tugmasi bilan topshiriqqa ko'chiring</p>
+      <a href="/assessment/template/test/" class="flex items-center gap-1 text-[#0058be] font-semibold hover:underline mt-2">
+        <span class="material-symbols-outlined text-[14px]">download</span> Test shablon (.docx)
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Use in assignment modal -->
+<div id="use-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <div class="flex justify-between mb-5">
+      <h3 class="font-bold text-slate-900 font-hl">Topshiriqqa qo'shish</h3>
+      <button onclick="document.getElementById('use-modal').classList.add('hidden')">
+        <span class="material-symbols-outlined text-slate-400">close</span>
+      </button>
+    </div>
+    <form method="post" id="use-form">
+      {% csrf_token %}<input type="hidden" name="action" value="use_in_assignment">
+      <div id="selected-inputs"></div>
+      <div class="mb-4">
+        <label class="text-xs font-semibold text-slate-600 block mb-2">Topshiriq tanlang (qoralama holatidagi)</label>
+        {% for a in my_assignments %}
+        <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg mb-2 cursor-pointer hover:bg-slate-50">
+          <input type="radio" name="assignment_id" value="{{ a.pk }}" required>
+          <div>
+            <p class="text-sm font-semibold text-slate-900">{{ a.title }}</p>
+            <p class="text-xs text-slate-500">{{ a.subject.name }} · {{ a.questions.count }} ta savol bor</p>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+      <p id="selected-count" class="text-sm text-slate-500 mb-4">Hech qanday savol tanlanmagan</p>
+      <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-colors">
+        Tanlangan savollarni qo'shish
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+// Checkbox selection
+const checkboxes = document.querySelectorAll('.q-checkbox');
+const countEl = document.getElementById('selected-count');
+const selectedInputs = document.getElementById('selected-inputs');
+
+function updateSelection() {
+  const selected = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
+  if (countEl) countEl.textContent = selected.length > 0 ? `${selected.length} ta savol tanlandi` : 'Hech qanday savol tanlanmagan';
+  if (selectedInputs) {
+    selectedInputs.innerHTML = selected.map(id => `<input type="hidden" name="selected_questions" value="${id}">`).join('');
+  }
+}
+checkboxes.forEach(cb => cb.addEventListener('change', updateSelection));
+
+// Select all with Ctrl+A
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a' && document.getElementById('q-list')) {
+    e.preventDefault();
+    checkboxes.forEach(cb => cb.checked = true);
+    updateSelection();
+  }
+});
+</script>
+{% endblock %}

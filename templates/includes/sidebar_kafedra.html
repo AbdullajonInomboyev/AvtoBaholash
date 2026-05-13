@@ -1,0 +1,21 @@
+<a href="{% url 'core:kafedra_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'kafedra_dashboard' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">dashboard</span>Boshqaruv paneli
+</a>
+<a href="{% url 'core:kafedra_teachers' %}" class="nav-link {% if request.resolver_match.url_name == 'kafedra_teachers' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">school</span>O'qituvchilar
+</a>
+<a href="{% url 'core:kafedra_students' %}" class="nav-link {% if request.resolver_match.url_name == 'kafedra_students' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">groups</span>Talabalar
+</a>
+<a href="{% url 'core:kafedra_subjects' %}" class="nav-link {% if request.resolver_match.url_name == 'kafedra_subjects' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">book</span>Fanlar va guruhlar
+</a>
+<a href="{% url 'core:kafedra_exam_schedule' %}" class="nav-link {% if request.resolver_match.url_name == 'kafedra_exam_schedule' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">calendar_today</span>Imtihon jadvali
+</a>
+<a href="{% url 'core:kafedra_ai_journal' %}" class="nav-link {% if request.resolver_match.url_name == 'kafedra_ai_journal' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">psychology</span>AI Tahlil jurnali
+</a>
+<a href="{% url 'analytics:kafedra' %}" class="nav-link {% if request.resolver_match.app_name == 'analytics' and 'kafedra' in request.resolver_match.url_name %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">bar_chart</span>Tahlil
+</a>

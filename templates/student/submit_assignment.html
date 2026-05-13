@@ -1,0 +1,125 @@
+{% extends "base/base.html" %}
+{% block title %}Topshiriq: {{ assignment.title }}{% endblock %}
+{% block page_title %}{{ assignment.title }}{% endblock %}
+{% block page_subtitle %}{{ assignment.subject.name }} · {{ assignment.get_assignment_type_display }}{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_student.html' %}{% endblock %}
+{% block extra_js %}<script>
+function readInstructions() {
+  const title       = document.querySelector('h2,h3,.font-bold')?.textContent || '';
+  const description = document.querySelector('.assignment-desc,.description,p')?.textContent || '';
+  const text        = `${title}. ${description}`.trim().substring(0, 500);
+  if (!text) return;
+  document.getElementById('tts-status').textContent = "O'qilmoqda...";
+  const audio = new Audio(`/dashboard/tts/?text=${encodeURIComponent(text)}`);
+  audio.play().catch(() => {
+    const utt  = new SpeechSynthesisUtterance(text);
+    const v    = window.speechSynthesis.getVoices();
+    const voice = v.find(x => x.lang.startsWith('uz')) || v.find(x => x.lang.startsWith('ru')) || v[0];
+    if (voice) utt.voice = voice;
+    utt.rate = 0.9;
+    window.speechSynthesis.speak(utt);
+  });
+  audio.addEventListener('ended', () => {
+    document.getElementById('tts-status').textContent = "Tugadi";
+  });
+}
+</script>
+<script>
+const ta = document.getElementById('text-answer');
+const wc = document.getElementById('word-count');
+if(ta && wc) ta.addEventListener('input',()=>{
+  const words = ta.value.trim().split(/\s+/).filter(w=>w).length;
+  wc.textContent = words + ' so\'z';
+  wc.className = 'text-xs ' + (words < 50 ? 'text-red-400' : words < 100 ? 'text-yellow-500' : 'text-green-600');
+});
+</script>{% endblock %}
+
+{% block content %}
+
+{% if accessible %}
+<div class="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-5 flex items-center gap-3">
+  <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+    <span class="material-symbols-outlined text-purple-600 text-[20px]" style="font-variation-settings:'FILL' 1">hearing</span>
+  </div>
+  <div class="flex-1">
+    <p class="font-bold text-purple-900 text-sm">Inklyuziv ovozli rejim</p>
+    <p class="text-purple-600 text-xs" id="tts-status">Ko'rsatmalarni eshitish uchun tugmani bosing</p>
+  </div>
+  <button onclick="readInstructions()" class="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-700">
+    <span class="material-symbols-outlined text-[16px]">volume_up</span> O'qi
+  </button>
+</div>
+{% endif %}
+<div class="max-w-2xl mx-auto">
+  <!-- Info card -->
+  <div class="card mb-5">
+    <div class="flex items-start gap-4">
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 {% if assignment.assignment_type == 'written' %}bg-purple-100 text-purple-600{% else %}bg-green-100 text-green-600{% endif %}">
+        <span class="material-symbols-outlined">{% if assignment.assignment_type == 'written' %}edit_note{% else %}attach_file{% endif %}</span>
+      </div>
+      <div>
+        <h2 class="text-lg font-bold text-slate-900 font-hl">{{ assignment.title }}</h2>
+        <p class="text-sm text-slate-500 mt-1">{{ assignment.subject.name }}</p>
+        <div class="flex items-center gap-4 mt-2 text-xs text-slate-500">
+          <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">schedule</span>Muddat: {{ assignment.deadline|date:"d.m.Y H:i" }}</span>
+          <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">grade</span>{{ assignment.max_score|floatformat:0 }} ball</span>
+        </div>
+      </div>
+    </div>
+    {% if assignment.description %}
+    <div class="mt-4 pt-4 border-t border-slate-100">
+      <p class="text-sm font-semibold text-slate-700 mb-1">Topshiriq:</p>
+      <p class="text-sm text-slate-600 leading-relaxed">{{ assignment.description }}</p>
+    </div>
+    {% endif %}
+    {% if assignment.instructions %}
+    <div class="mt-3 bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
+      <strong>Ko'rsatmalar:</strong> {{ assignment.instructions }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Form -->
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="card">
+      {% if assignment.assignment_type == 'written' %}
+        <h3 class="font-bold text-slate-900 mb-3 font-hl">Yozma javobingiz</h3>
+        <textarea name="text_answer" rows="10" required
+          placeholder="Javobingizni shu yerga yozing... (kamida 100 so'z bo'lishi tavsiya etiladi)"
+          class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0058be] focus:ring-2 focus:ring-[#0058be]/10 resize-none"
+          id="text-answer"></textarea>
+        <div class="flex justify-between items-center mt-2">
+          <p class="text-xs text-slate-400" id="word-count">0 so'z</p>
+          {% if accessible %}<p class="text-xs text-purple-600 flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">hearing</span>Ovozli yozish mavjud</p>{% endif %}
+        </div>
+        <!-- Fayl yuklash (ixtiyoriy) -->
+        <div class="mt-4 pt-4 border-t border-slate-100">
+          <div class="flex items-start gap-2 mb-2">
+            <p class="text-sm font-semibold text-slate-700">Fayl yuklash (ixtiyoriy)</p>
+            <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">Rasm, PDF, DOCX, ZIP</span>
+          </div>
+          <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-[#0058be] transition-colors cursor-pointer" onclick="document.getElementById('file-input').click()">
+            <span class="material-symbols-outlined text-3xl text-slate-400">cloud_upload</span>
+            <p class="mt-1 text-xs font-semibold text-slate-600">Faylni bu yerga tashlang yoki bosing</p>
+            <p id="file-name" class="text-xs text-slate-400 mt-1">Fayl tanlanmagan</p>
+          </div>
+          <input type="file" name="file" id="file-input" class="hidden"
+            accept="image/*,.pdf,.docx,.doc,.zip,.rar,.txt,.xlsx,.pptx"
+            onchange="document.getElementById('file-name').textContent=this.files[0]?.name||'Fayl tanlanmagan'">
+          <p class="text-xs text-slate-400 mt-2">Matn yozish bilan birga fayl ham qo'shishingiz mumkin. Maks: 10MB</p>
+        </div>
+      {% endif %}
+
+      <div class="flex gap-3 mt-6">
+        <a href="{% url 'core:student_assignments' %}" class="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">
+          <span class="material-symbols-outlined text-[16px]">arrow_back</span> Orqaga
+        </a>
+        <button type="submit" class="flex-1 flex items-center justify-center gap-2 bg-[#00236f] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1e3a8a] transition-colors">
+          <span class="material-symbols-outlined text-[16px]">send</span> Topshiriqni yuborish
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

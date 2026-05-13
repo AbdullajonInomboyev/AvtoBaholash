@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AvtoBaholash — Kirish</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
+body{font-family:'Inter',sans-serif}
+.font-hl{font-family:'Manrope',sans-serif}
+.input-field{width:100%;padding:10px 14px 10px 42px;border:1.5px solid #dee2ed;border-radius:8px;font-size:14px;outline:none;background:#fff;transition:border-color .2s}
+.input-field:focus{border-color:#0058be;box-shadow:0 0 0 3px rgba(0,88,190,.1)}
+</style>
+</head>
+<body class="bg-gradient-to-br from-[#f0f4ff] to-[#e8edf9] min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-md">
+  <!-- Logo -->
+  <div class="text-center mb-8">
+    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white shadow-xl shadow-[#00236f]/30 mx-auto mb-4">
+      <span class="material-symbols-outlined text-3xl" style="font-variation-settings:'FILL' 1">auto_stories</span>
+    </div>
+    <h1 class="text-3xl font-extrabold text-[#00236f] font-hl">AvtoBaholash</h1>
+    <p class="text-sm text-slate-500 mt-1">AI yordamida akademik baholash platformasi</p>
+  </div>
+
+  <!-- Card -->
+  <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-100 p-8">
+    <h2 class="text-xl font-bold text-slate-900 font-hl mb-1">Tizimga kirish</h2>
+    <p class="text-sm text-slate-500 mb-6">Login va parolingizni kiriting</p>
+
+    {% if error %}
+    <div class="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
+      <span class="material-symbols-outlined text-[18px]">error</span>{{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <!-- Username -->
+      <div class="mb-4">
+        <label class="text-sm font-semibold text-slate-700 block mb-1.5">Login</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">person</span>
+          <input name="username" type="text" class="input-field" placeholder="admin / teacher1 / student1" required autofocus/>
+        </div>
+      </div>
+      <!-- Password -->
+      <div class="mb-6">
+        <label class="text-sm font-semibold text-slate-700 block mb-1.5">Parol</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">lock</span>
+          <input name="password" type="password" id="pwd" class="input-field pr-10" placeholder="••••••••" required/>
+          <button type="button" onclick="togglePwd()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <span class="material-symbols-outlined text-[18px]" id="pwd-icon">visibility</span>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="w-full bg-[#00236f] hover:bg-[#1e3a8a] text-white py-3 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">login</span> Kirish
+      </button>
+    </form>
+
+    <!-- Demo credentials -->
+    
+
+  <p class="text-center text-xs text-slate-400 mt-4">
+    © 2024 AvtoBaholash · AI yordamida ta'lim sifatini oshiring
+  </p>
+</div>
+
+<script>
+function togglePwd(){
+  const p=document.getElementById('pwd'), i=document.getElementById('pwd-icon');
+  if(p.type==='password'){p.type='text';i.textContent='visibility_off'}
+  else{p.type='password';i.textContent='visibility'}
+}
+
+</script>
+</body>
+</html>

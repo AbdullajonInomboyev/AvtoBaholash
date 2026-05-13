@@ -1,0 +1,207 @@
+{% extends "base/base.html" %}
+{% block title %}Foydalanuvchilar{% endblock %}
+
+{% block page_title %}Foydalanuvchilar boshqaruvi{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_admin.html' %}{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-5 flex-wrap">
+  <div class="flex items-center gap-2 flex-wrap">
+    <a href="?" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors {% if not role_filter %}bg-[#00236f] text-white border-[#00236f]{% else %}bg-white border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Barchasi</a>
+    {% for val,label in roles %}
+    <a href="?role={{ val }}{% if search %}&q={{ search }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors {% if role_filter == val %}bg-[#00236f] text-white border-[#00236f]{% else %}bg-white border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">{{ label }}</a>
+    {% endfor %}
+    <span class="w-px h-5 bg-slate-200 mx-1"></span>
+    <!-- Qidiruv -->
+    <form method="get" class="flex items-center gap-2">
+      {% if role_filter %}<input type="hidden" name="role" value="{{ role_filter }}">{% endif %}
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
+        <input type="text" name="q" value="{{ search|default:'' }}" placeholder="Ism yoki login..."
+          class="pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs w-48 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300">
+      </div>
+      {% if search %}<a href="?{% if role_filter %}role={{ role_filter }}{% endif %}" class="text-slate-400 hover:text-slate-600 text-xs">✕</a>{% endif %}
+    </form>
+  </div>
+  <div class="ml-auto flex gap-2">
+    <a href="{% url 'core:student_import_template' %}" class="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-sm font-bold px-3 py-2 rounded-lg hover:bg-slate-200">
+      <span class="material-symbols-outlined text-[16px]">download</span> Shablon
+    </a>
+    <button onclick="document.getElementById('excel-import-modal').classList.remove('hidden')" class="flex items-center gap-1.5 bg-green-600 text-white text-sm font-bold px-3 py-2 rounded-lg hover:bg-green-700">
+      <span class="material-symbols-outlined text-[16px]">table_view</span> Excel import
+    </button>
+    <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="flex items-center gap-1.5 bg-[#00236f] text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-[#1e3a8a]">
+      <span class="material-symbols-outlined text-[16px]">add</span> Qo'shish
+    </button>
+  </div>
+</div>
+<div class="card overflow-x-auto">
+<table class="w-full text-sm">
+  <thead><tr class="bg-slate-50 text-xs text-slate-400 uppercase border-b border-slate-200">
+    <th class="px-5 py-3 text-left">Foydalanuvchi</th><th class="px-4 py-3 text-left">Rol</th><th class="px-4 py-3 text-left">Kafedra/Guruh</th><th class="px-4 py-3 text-left">Sana</th><th class="px-4 py-3 text-center">Holat</th><th class="px-4 py-3"></th>
+  </tr></thead>
+  <tbody class="divide-y divide-slate-100">
+  {% for u in users %}
+  <tr class="hover:bg-slate-50/50">
+    <td class="px-5 py-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#00236f] to-[#0058be] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">{{ u.initials }}</div>
+        <div><p class="font-semibold text-slate-900">{{ u.full_name }}</p><p class="text-xs text-slate-400">{{ u.username }}</p></div>
+      </div>
+    </td>
+    <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded {% if u.is_admin %}bg-red-100 text-red-700{% elif u.is_kafedra %}bg-purple-100 text-purple-700{% elif u.is_teacher %}bg-green-100 text-green-700{% else %}bg-orange-100 text-orange-700{% endif %}">{{ u.get_role_display }}</span>
+              {% if u.role == 'talaba' %}
+              <a href="{% url 'core:toggle_accessible' u.pk %}"
+                 onclick="return confirm('{{ u.full_name }} inklyuziv holatini o\'zgartirish?')"
+                 class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full
+                   {% if u.is_accessible %}bg-purple-100{% else %}bg-slate-100{% endif %}"
+                 title="{% if u.is_accessible %}Inklyuziv — bosing o'zgartirish{% else %}Oddiy — bosing inklyuzivga{% endif %}">
+                <span class="material-symbols-outlined text-[11px] {% if u.is_accessible %}text-purple-600{% else %}text-slate-400{% endif %}">hearing</span>
+              </a>
+              {% endif %}</td>
+    <td class="px-4 py-3 text-xs text-slate-500">{{ u.department|default:u.group|default:"—" }}</td>
+    <td class="px-4 py-3 text-xs text-slate-400">{{ u.date_joined|date:"d.m.Y" }}</td>
+    <td class="px-4 py-3 text-center">
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="{{ u.pk }}">
+        <button type="submit" class="text-xs font-bold px-2 py-1 rounded {% if u.is_active %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-slate-100 text-slate-500 hover:bg-slate-200{% endif %}">{% if u.is_active %}Faol{% else %}Nofa&#173;ol{% endif %}</button>
+      </form>
+    </td>
+    <td class="px-4 py-3">
+      {% if not u.is_superuser %}
+      <div class="flex items-center gap-1">
+        <button type="button"
+          onclick="openEditUser('{{ u.pk }}','{{ u.first_name }}','{{ u.last_name }}','{{ u.email }}','{{ u.role }}','{{ u.student_id }}','{% if u.is_accessible %}true{% else %}false{% endif %}')"  
+          class="w-8 h-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-600 hover:bg-blue-50" title="Tahrirlash">
+          <span class="material-symbols-outlined text-[18px]">edit</span>
+        </button>
+        <form method="post" onsubmit="return confirm('O\'chirilsinmi?')">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="id" value="{{ u.pk }}">
+          <button class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50" title="O'chirish">
+            <span class="material-symbols-outlined text-[18px]">delete</span>
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="py-10 text-center text-slate-400">Foydalanuvchi yo'q</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+<div id="add-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <div class="flex justify-between mb-5"><h3 class="font-bold text-slate-900 font-hl">Yangi foydalanuvchi</h3><button onclick="document.getElementById('add-modal').classList.add('hidden')"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
+    <form method="post" class="space-y-3">{% csrf_token %}<input type="hidden" name="action" value="create">
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Familya</label><input name="last_name" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Ism</label><input name="first_name" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]"></div>
+      </div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Login *</label><input name="username" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]"></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Parol *</label><input type="password" name="password" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]"></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Rol *</label>
+        <select name="role" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+          {% for val,label in roles %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+        </select></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Kafedra</label>
+        <select name="department" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+          <option value="">—</option>{% for d in departments %}<option value="{{ d.pk }}">{{ d.name }}</option>{% endfor %}
+        </select></div>
+      <button type="submit" class="w-full bg-[#00236f] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">Qo'shish</button>
+    </form>
+  </div>
+</div>
+
+<!-- Excel import modal -->
+<div id="excel-import-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <div class="flex justify-between mb-5">
+      <h3 class="font-bold text-slate-900 font-hl">Excel orqali import</h3>
+      <button onclick="document.getElementById('excel-import-modal').classList.add('hidden')"><span class="material-symbols-outlined text-slate-400">close</span></button>
+    </div>
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-xs text-blue-800">
+      <strong>Ustunlar:</strong> Familya | Ism | Login* | Parol | ID | Guruh/Kafedra | <strong>ROL*</strong><br><br>
+      <strong>Rol qiymatlari:</strong> <span class="bg-green-100 text-green-800 px-1 rounded">talaba</span> <span class="bg-blue-100 text-blue-800 px-1 rounded">oqituvchi</span> <span class="bg-purple-100 text-purple-800 px-1 rounded">kafedra_mudiri</span> <span class="bg-orange-100 text-orange-800 px-1 rounded">admin</span>
+    </div>
+    <form method="post" action="{% url 'core:import_students_excel' %}" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="text-xs font-semibold text-slate-600 block mb-1">Excel fayl (.xlsx) *</label>
+        <input type="file" name="excel_file" accept=".xlsx,.xls" required class="text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 w-full">
+      </div>
+      <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-700">Import qilish</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="edit-user-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md my-4">
+    <div class="flex justify-between mb-5">
+      <h3 class="font-bold text-slate-900" style="font-family:'Manrope',sans-serif">Foydalanuvchini tahrirlash</h3>
+      <button onclick="document.getElementById('edit-user-modal').classList.add('hidden')">
+        <span class="material-symbols-outlined text-slate-400">close</span>
+      </button>
+    </div>
+    <form method="post" id="edit-user-form" action="">
+      {% csrf_token %}
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Familya</label>
+            <input type="text" name="last_name" id="edit-last-name" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Ism</label>
+            <input type="text" name="first_name" id="edit-first-name" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Email</label>
+          <input type="email" name="email" id="edit-email" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Rol</label>
+          <select name="role" id="edit-role" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <option value="talaba">Talaba</option>
+            <option value="oqituvchi">O'qituvchi</option>
+            <option value="kafedra_mudiri">Kafedra mudiri</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Talaba ID</label>
+          <input type="text" name="student_id" id="edit-student-id" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Yangi parol (o'zgartirmasangiz bo'sh qoldiring)</label>
+          <input type="password" name="password" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+        <!-- Inklyuziv ta'lim -->
+        <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
+          <input type="checkbox" name="is_accessible" id="edit-accessible" class="w-4 h-4 rounded border-slate-300 text-purple-600">
+          <label for="edit-accessible" class="flex-1 cursor-pointer">
+            <p class="text-sm font-semibold text-purple-900">Inklyuziv ta'lim</p>
+            <p class="text-xs text-purple-600">Test ovoz bilan o'qiladi (TTS)</p>
+          </label>
+          <span class="material-symbols-outlined text-purple-400 text-[20px]" style="font-variation-settings:'FILL' 1">hearing</span>
+        </div>
+        <button type="submit" class="w-full bg-[#00236f] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">Saqlash</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditUser(pk, firstName, lastName, email, role, studentId, isAccessible) {
+  document.getElementById('edit-first-name').value  = firstName;
+  document.getElementById('edit-last-name').value   = lastName;
+  document.getElementById('edit-email').value        = email;
+  document.getElementById('edit-role').value         = role;
+  document.getElementById('edit-student-id').value  = studentId;
+  document.getElementById('edit-accessible').checked = isAccessible === 'true';
+  document.getElementById('edit-user-form').action  = `/dashboard/admin-panel/users/${pk}/edit/`;
+  document.getElementById('edit-user-modal').classList.remove('hidden');
+}
+</script>
+{% endblock %}

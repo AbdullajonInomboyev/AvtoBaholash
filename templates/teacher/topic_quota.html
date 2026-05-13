@@ -1,0 +1,149 @@
+{% extends "base/base.html" %}
+{% block title %}Mavzu kvotasi{% endblock %}
+{% block page_title %}Mavzu bo'yicha savol kvotasi{% endblock %}
+{% block page_subtitle %}{{ assignment.title }}{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+  <!-- Info -->
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 flex items-start gap-3">
+    <span class="material-symbols-outlined text-blue-500 flex-shrink-0">info</span>
+    <div class="text-sm text-blue-800">
+      <strong>Mavzu kvotasi nima?</strong> Har mavzudan nechta savol tashlanishini belgilaysiz.
+      Masalan: "Stek" dan 3 ta, "Navbat" dan 2 ta. Talabalar har doim aralash order da ko'radi.
+      Jami: <strong>{{ total_questions }}</strong> ta savol mavjud.
+    </div>
+  </div>
+
+  <div class="card">
+    <form method="post" id="quota-form">
+      {% csrf_token %}<input type="hidden" name="action" value="save_quotas">
+
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-bold text-slate-900 font-hl">Mavzular va kvotalar</h3>
+        <button type="button" onclick="addRow()" class="flex items-center gap-1 text-sm text-[#0058be] font-semibold hover:underline">
+          <span class="material-symbols-outlined text-[16px]">add</span> Mavzu qo'shish
+        </button>
+      </div>
+
+      <div id="quota-rows" class="space-y-3 mb-5">
+        {% if existing_quotas %}
+          {% for topic, count in existing_quotas.items %}
+          <div class="quota-row flex items-center gap-3">
+            <input type="text" name="topic" value="{{ topic }}" required list="topics-list"
+              placeholder="Mavzu nomi"
+              class="flex-1 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]">
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-slate-500 whitespace-nowrap">Savol soni:</label>
+              <input type="number" name="count" value="{{ count }}" min="1" max="50" required
+                class="w-20 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-center font-bold focus:outline-none focus:border-[#0058be]">
+            </div>
+            <button type="button" onclick="this.closest('.quota-row').remove()" class="text-slate-300 hover:text-red-500">
+              <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
+          {% endfor %}
+        {% elif all_topics %}
+          {% for topic in all_topics %}
+          <div class="quota-row flex items-center gap-3">
+            <input type="text" name="topic" value="{{ topic }}" required list="topics-list"
+              class="flex-1 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]">
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-slate-500 whitespace-nowrap">Savol soni:</label>
+              <input type="number" name="count" value="2" min="1" max="50" required
+                class="w-20 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-center font-bold focus:outline-none focus:border-[#0058be]">
+            </div>
+            <button type="button" onclick="this.closest('.quota-row').remove()" class="text-slate-300 hover:text-red-500">
+              <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <!-- empty, user adds manually -->
+        {% endif %}
+      </div>
+
+      <datalist id="topics-list">
+        {% for t in all_topics %}<option value="{{ t }}">{% endfor %}
+        {% for t in syllabus_topics %}<option value="{{ t }}">{% endfor %}
+      </datalist>
+
+      <!-- Live total -->
+      <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl mb-5 text-sm">
+        <span class="text-slate-600">Jami tanlangan:</span>
+        <span id="total-display" class="font-bold text-[#00236f]">0 ta savol</span>
+        <span class="text-slate-400">(mavjud: {{ total_questions }} ta)</span>
+      </div>
+
+      <div class="flex gap-3">
+        <a href="{% url 'core:teacher_edit_assignment' pk=assignment.pk %}" class="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">
+          <span class="material-symbols-outlined text-[16px]">arrow_back</span> Orqaga
+        </a>
+        <button type="submit" class="flex-1 flex items-center justify-center gap-2 bg-[#00236f] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#1e3a8a] transition-colors">
+          <span class="material-symbols-outlined text-[16px]">save</span> Kvotalarni saqlash
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Sillabus mavzulari -->
+  {% if syllabus_topics %}
+  <div class="card mt-5">
+    <h4 class="font-bold text-slate-900 font-hl mb-3 text-sm">Sillabus mavzulari</h4>
+    <div class="flex flex-wrap gap-2">
+      {% for t in syllabus_topics %}
+      <button type="button" onclick="addTopicRow('{{ t }}')" class="text-xs bg-slate-100 text-slate-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
+        + {{ t|truncatechars:30 }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function addRow(topicVal='', countVal=2) {
+  const row = document.createElement('div');
+  row.className = 'quota-row flex items-center gap-3';
+  row.innerHTML = `
+    <input type="text" name="topic" value="${topicVal}" required list="topics-list"
+      placeholder="Mavzu nomi"
+      class="flex-1 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]"
+      oninput="updateTotal()">
+    <div class="flex items-center gap-2">
+      <label class="text-xs text-slate-500 whitespace-nowrap">Savol soni:</label>
+      <input type="number" name="count" value="${countVal}" min="1" max="50" required
+        class="w-20 border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-center font-bold focus:outline-none focus:border-[#0058be]"
+        oninput="updateTotal()">
+    </div>
+    <button type="button" onclick="this.closest('.quota-row').remove(); updateTotal()" class="text-slate-300 hover:text-red-500">
+      <span class="material-symbols-outlined text-[18px]">close</span>
+    </button>
+  `;
+  document.getElementById('quota-rows').appendChild(row);
+  updateTotal();
+}
+
+function addTopicRow(topic) {
+  addRow(topic, 2);
+}
+
+function updateTotal() {
+  const counts = Array.from(document.querySelectorAll('input[name="count"]'))
+    .map(i => parseInt(i.value) || 0);
+  const total = counts.reduce((a, b) => a + b, 0);
+  const el = document.getElementById('total-display');
+  const max = {{ total_questions }};
+  el.textContent = `${total} ta savol`;
+  el.className = `font-bold ${total > max ? 'text-red-600' : 'text-[#00236f]'}`;
+  if (total > max) el.textContent += ` (mavjud: ${max} ta!)`;
+}
+
+// Attach live update to existing inputs
+document.querySelectorAll('input[name="count"], input[name="topic"]').forEach(i => {
+  i.addEventListener('input', updateTotal);
+});
+updateTotal();
+</script>
+{% endblock %}

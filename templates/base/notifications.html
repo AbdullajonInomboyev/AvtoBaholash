@@ -1,0 +1,42 @@
+{% extends "base/base.html" %}
+{% block title %}Bildirishnomalar{% endblock %}
+{% block page_title %}Bildirishnomalar{% endblock %}
+{% block sidebar_nav %}
+  {% if user.is_admin %}
+    {% include 'includes/sidebar_admin.html' %}
+  {% elif user.is_kafedra %}
+    {% include 'includes/sidebar_kafedra.html' %}
+  {% elif user.is_teacher %}
+    {% include 'includes/sidebar_teacher.html' %}
+  {% else %}
+    {% include 'includes/sidebar_student.html' %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  {% if notifications %}
+    <div class="space-y-3">
+      {% for n in notifications %}
+      <a href="{% url 'core:mark_read' n.pk %}" class="flex items-start gap-4 p-4 rounded-xl border {% if n.is_read %}border-slate-100 bg-slate-50{% else %}border-blue-200 bg-blue-50{% endif %} hover:shadow-md transition-all">
+        <div class="w-10 h-10 rounded-full {% if n.is_read %}bg-slate-200{% else %}bg-blue-100{% endif %} flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined {% if n.is_read %}text-slate-500{% else %}text-blue-600{% endif %} text-[18px]">
+            {% if n.notification_type == 'new_assignment' %}assignment{% elif n.notification_type == 'graded' %}grade{% elif n.notification_type == 'feedback' %}forum{% else %}info{% endif %}
+          </span>
+        </div>
+        <div class="flex-1">
+          <p class="font-bold text-slate-900 mb-0.5">{{ n.title }}</p>
+          <p class="text-sm text-slate-600 leading-relaxed">{{ n.message }}</p>
+          <p class="text-xs text-slate-400 mt-1.5">{{ n.created_at|date:"d.m.Y H:i" }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-12">
+      <span class="material-symbols-outlined text-slate-300 text-[48px]">notifications_off</span>
+      <p class="text-slate-400 mt-2">Hozircha bildirishnomalar yo'q</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

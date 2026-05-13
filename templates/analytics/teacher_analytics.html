@@ -1,0 +1,70 @@
+{% extends "base/base.html" %}
+{% block title %}Mening tahlilim{% endblock %}
+{% block page_title %}Mening statistikam{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl text-[#0058be]">{{ total_graded }}</div>
+    <p class="text-xs text-slate-500 mt-1">Jami baholangan</p>
+  </div>
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl {% if avg_ai_score >= 85 %}text-green-600{% elif avg_ai_score >= 65 %}text-yellow-600{% elif avg_ai_score %}text-red-600{% else %}text-slate-400{% endif %}">
+      {% if avg_ai_score %}{{ avg_ai_score }}%{% else %}—{% endif %}
+    </div>
+    <p class="text-xs text-slate-500 mt-1">O'rtacha sillabus bali</p>
+  </div>
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl text-slate-700">{{ my_subjects|length }}</div>
+    <p class="text-xs text-slate-500 mt-1">Faol fanlar</p>
+  </div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">Baho taqsimoti</h3>
+    <canvas id="gradeChart" height="220"></canvas>
+  </div>
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">Fanlar bo'yicha o'rtacha</h3>
+    <div class="space-y-3 mt-2">
+      {% for st in my_subjects %}
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="font-semibold text-slate-700">{{ st.subject.name }}</span>
+          <span class="font-bold {% if st.avg_score >= 75 %}text-green-600{% elif st.avg_score %}text-yellow-600{% else %}text-slate-400{% endif %}">
+            {% if st.avg_score %}{{ st.avg_score|floatformat:1 }}{% else %}—{% endif %}
+          </span>
+        </div>
+        {% if st.avg_score %}
+        <div class="w-full bg-slate-100 rounded-full h-2">
+          <div class="h-2 rounded-full {% if st.avg_score >= 75 %}bg-green-500{% elif st.avg_score >= 55 %}bg-yellow-400{% else %}bg-red-400{% endif %}"
+            style="width:{{ st.avg_score|floatformat:0 }}%"></div>
+        </div>
+        {% endif %}
+        <p class="text-xs text-slate-400 mt-0.5">{{ st.total_subs|default:0 }} ta javob</p>
+      </div>
+      {% empty %}
+      <p class="text-slate-400 text-sm">Ma'lumot yo'q</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const gd = {{ grade_dist_json|safe }};
+new Chart(document.getElementById('gradeChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(gd),
+    datasets: [{ label: 'Talabalar soni', data: Object.values(gd),
+      backgroundColor: ['#22c55e','#4ade80','#facc15','#fb923c','#f87171','#ef4444'],
+      borderRadius: 6, borderSkipped: false }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}

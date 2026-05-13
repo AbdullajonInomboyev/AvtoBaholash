@@ -1,0 +1,336 @@
+{% extends "base/base.html" %}
+{% load math_tags %}
+{% block title %}{{ assignment.title }}{% endblock %}
+{% block page_title %}{{ assignment.title }}{% endblock %}
+{% block page_subtitle %}{{ assignment.subject.name }} · {{ questions|length }} ta savol · {{ assignment.duration_minutes }} daqiqa{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_student.html' %}{% endblock %}
+{% block extra_head %}
+<style>
+.test-wrap{max-width:860px;margin:0 auto}
+.q-card{background:#fff;border-radius:20px;box-shadow:0 4px 24px rgba(0,35,111,.08);border:1.5px solid #e8edf9;padding:32px;transition:box-shadow .2s}
+.q-number{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#00236f,#0058be);color:#fff;font-size:18px;font-weight:800;flex-shrink:0}
+.q-text{font-size:17px;font-weight:600;color:#1a1f2e;line-height:1.6}
+.opt{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:14px;border:2px solid #e2e8f0;background:#f8f9ff;cursor:pointer;transition:all .18s;margin-bottom:10px;text-align:left;width:100%;font-family:inherit}
+.opt:hover{border-color:#0058be;background:#eff6ff;transform:translateX(2px)}
+.opt.selected{border-color:#00236f;background:linear-gradient(135deg,#eef2ff,#e0e7ff);box-shadow:0 2px 12px rgba(0,35,111,.15)}
+.opt-key{min-width:32px;height:32px;border-radius:8px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;transition:all .18s;color:#475569}
+.opt.selected .opt-key{background:#00236f;color:#fff}
+.opt-text{font-size:14.5px;color:#374151}
+.opt.selected .opt-text{color:#1e3a8a;font-weight:600}
+#timer{font-size:26px;font-weight:900;color:#00236f;font-family:'Manrope',monospace}
+#timer.warning{color:#d97706}
+#timer.danger{color:#dc2626;animation:tpulse 1s infinite}
+@keyframes tpulse{0%,100%{opacity:1}50%{opacity:.5}}
+.q-dot{width:32px;height:32px;border-radius:8px;border:1.5px solid #dee2ed;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;color:#94a3b8;transition:all .15s;background:#fff}
+.q-dot:hover{border-color:#0058be;color:#0058be}
+.q-dot.answered{background:#00236f;border-color:#00236f;color:#fff}
+.q-dot.current{border-color:#0058be;color:#0058be;background:#eff6ff}
+.progress-track{height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#00236f,#0058be);border-radius:999px;transition:width .4s}
+.tts-panel{background:linear-gradient(135deg,#f0f4ff,#e8edf9);border:1.5px solid #c7d2fe;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.mic-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#e0e7ff;color:#3730a3;transition:all .2s;flex-shrink:0}
+.mic-btn.listening{background:#dc2626;color:#fff;animation:mpulse 1s infinite}
+@keyframes mpulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 0 0 10px rgba(220,38,38,0)}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="test-wrap">
+
+{% if accessible %}
+<div class="tts-panel">
+  <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+    <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1">hearing</span>
+  </div>
+  <div class="flex-1 min-w-0">
+    <p class="font-bold text-indigo-900 text-sm">Inklyuziv ovozli rejim</p>
+    <p class="text-indigo-600 text-xs truncate" id="tts-status">Sahifani bosing — savollar o'zbek tilida o'qiladi</p>
+  </div>
+  <button class="mic-btn" id="mic-btn" title="Ovoz bilan javob" onclick="startVoiceAnswer()">
+    <span class="material-symbols-outlined text-[20px]">mic</span>
+  </button>
+</div>
+{% endif %}
+
+<div class="flex items-center gap-4 mb-5">
+  <div class="bg-white border border-slate-200 rounded-2xl flex items-center gap-3 px-4 py-2.5 flex-shrink-0">
+    <span class="material-symbols-outlined text-[#0058be] text-[20px]">timer</span>
+    <span id="timer">--:--</span>
+  </div>
+  <div class="flex-1">
+    <div class="flex justify-between text-xs text-slate-500 mb-1.5">
+      <span>Javob: <strong id="answered-count">0</strong>/{{ questions|length }}</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="bg-white border border-slate-200 rounded-2xl p-4 mb-5">
+  <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3">Savollar navigatsiyasi</p>
+  <div class="flex flex-wrap gap-2" id="q-nav">
+    {% for q in questions %}
+    <button class="q-dot {% if forloop.first %}current{% endif %}" data-q="{{ q.pk }}"
+      onclick="goToQ({{ forloop.counter }})">{{ forloop.counter }}</button>
+    {% endfor %}
+  </div>
+  <div class="flex items-center gap-4 mt-3 text-xs text-slate-400 flex-wrap">
+    <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-[#00236f] rounded-sm inline-block"></span>Javob berildi</span>
+    <span class="flex items-center gap-1.5"><span class="w-3 h-3 border border-[#0058be] bg-[#eff6ff] rounded-sm inline-block"></span>Joriy</span>
+    <span class="flex items-center gap-1.5"><span class="w-3 h-3 border border-slate-300 rounded-sm inline-block"></span>Javob berilmadi</span>
+  </div>
+</div>
+
+<form method="post" id="test-form">
+{% csrf_token %}
+<input type="hidden" name="tab_switches" id="tab_switches" value="0">
+<input type="hidden" name="copy_count"   id="copy_count"   value="0">
+<input type="hidden" name="paste_count"  id="paste_count"  value="0">
+<input type="hidden" name="time_taken"   id="time_taken"   value="0">
+
+{% for q in questions %}
+<div class="q-card mb-4 {% if not forloop.first %}hidden{% endif %}" id="q-{{ forloop.counter }}" data-qpk="{{ q.pk }}">
+  <div class="flex items-start gap-4 mb-6">
+    <span class="q-number">{{ forloop.counter }}</span>
+    <div class="flex-1">
+      <p class="q-text">{{ q.text|auto_math }}</p>
+      {% if q.image %}<img src="{{ q.image.url }}" class="mt-3 rounded-xl max-h-48 object-contain border border-slate-200">{% endif %}
+    </div>
+  </div>
+  <div>
+    {% for key, text, img_url in q.get_options %}
+    <button type="button" class="opt" data-qid="{{ q.pk }}" data-key="{{ key }}"
+      onclick="selectAnswer('{{ q.pk }}','{{ key }}',this)">
+      <span class="opt-key">{{ key }}</span>
+      <span class="opt-text">
+        {{ text|auto_math }}
+        {% if img_url %}<img src="{{ img_url }}" class="mt-2 max-h-20 inline-block rounded border border-slate-200" alt="Variant {{ key }}">{% endif %}
+      </span>
+    </button>
+    <input type="hidden" name="ans_{{ q.pk }}" id="ans_{{ q.pk }}" value="">
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+<div class="flex items-center justify-between mt-6">
+  <button type="button" onclick="prevQ()" id="btn-prev"
+    class="flex items-center gap-2 bg-slate-100 text-slate-700 px-5 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">
+    <span class="material-symbols-outlined text-[18px]">arrow_back</span> Oldingi
+  </button>
+  <span class="text-sm text-slate-500 font-semibold"><span id="cur-num">1</span>/{{ questions|length }}</span>
+  <div class="flex gap-3">
+    <button type="button" onclick="nextQ()" id="btn-next"
+      class="flex items-center gap-2 bg-[#0058be] text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-[#004aad] transition-colors">
+      Keyingi <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+    </button>
+    <button type="submit" onclick="clearTimer()" id="btn-submit"
+      style="display:none" class="flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-colors">
+      <span class="material-symbols-outlined text-[18px]">send</span> Topshirish
+    </button>
+  </div>
+</div>
+</form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const TOTAL    = {{ questions|length }};
+const DURATION = {{ duration }};
+const IS_ACCESSIBLE = {% if accessible %}true{% else %}false{% endif %};
+const TIMER_KEY = 'el_tmr_{{ assignment.pk }}_{{ user.pk }}';
+const START_KEY = 'el_str_{{ assignment.pk }}_{{ user.pk }}';
+const ANS_KEY   = 'el_ans_{{ assignment.pk }}_{{ user.pk }}';
+
+let currentQ = 1, tabCount = 0;
+const answers = {};
+
+// Saqlangan javoblarni yuklash
+try { Object.assign(answers, JSON.parse(localStorage.getItem(ANS_KEY)||'{}')); } catch(e) {}
+
+// Timer
+let remaining = DURATION;
+try {
+  const ss = parseInt(localStorage.getItem(START_KEY)||'0');
+  const st = parseInt(localStorage.getItem(TIMER_KEY)||'0');
+  if (ss>0&&st>0) remaining = Math.max(0, st - Math.floor((Date.now()-ss)/1000));
+} catch(e) {}
+try { localStorage.setItem(START_KEY,Date.now()); localStorage.setItem(TIMER_KEY,remaining); } catch(e) {}
+
+function updateTimer(){
+  const m=Math.floor(remaining/60).toString().padStart(2,'0');
+  const s=(remaining%60).toString().padStart(2,'0');
+  const el=document.getElementById('timer');
+  el.textContent=`${m}:${s}`;
+  el.className = remaining<=60?'danger':remaining<=300?'warning':'';
+  document.getElementById('time_taken').value = DURATION - remaining;
+  if(remaining<=0){clearTimer();document.getElementById('test-form').submit();return;}
+  remaining--;
+  if(remaining%5===0){try{localStorage.setItem(START_KEY,Date.now());localStorage.setItem(TIMER_KEY,remaining);}catch(e){}}
+}
+updateTimer();
+setInterval(updateTimer,1000);
+
+function clearTimer(){
+  try{localStorage.removeItem(TIMER_KEY);localStorage.removeItem(START_KEY);localStorage.removeItem(ANS_KEY);}catch(e){}
+}
+
+// Navigatsiya
+function showQ(n){
+  document.querySelectorAll('.q-card').forEach((c,i)=>c.classList.toggle('hidden',i!==n-1));
+  document.querySelectorAll('.q-dot').forEach((d,i)=>{
+    d.classList.toggle('current',i===n-1);
+    if(i===n-1) d.scrollIntoView({block:'nearest'});
+  });
+  currentQ=n;
+  document.getElementById('cur-num').textContent=n;
+  document.getElementById('btn-prev').disabled = n===1;
+  document.getElementById('btn-next').style.display = n===TOTAL?'none':'flex';
+  document.getElementById('btn-submit').style.display = n===TOTAL?'flex':'none';
+  if(IS_ACCESSIBLE) speakQuestion(n-1);
+}
+function nextQ(){if(currentQ<TOTAL)showQ(currentQ+1);}
+function prevQ(){if(currentQ>1)showQ(currentQ-1);}
+function goToQ(n){showQ(n);}
+
+// Javob tanlash
+function selectAnswer(qId,key,btn){
+  answers[qId]=key;
+  document.getElementById(`ans_${qId}`).value=key;
+  document.querySelectorAll(`.opt[data-qid="${qId}"]`).forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const dot=document.querySelector(`.q-dot[data-q="${qId}"]`);
+  if(dot)dot.classList.add('answered');
+  const cnt=Object.keys(answers).length;
+  document.getElementById('answered-count').textContent=cnt;
+  const pct=Math.round(cnt/TOTAL*100);
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-bar').style.width=pct+'%';
+  try{localStorage.setItem(ANS_KEY,JSON.stringify(answers));}catch(e){}
+  if(IS_ACCESSIBLE){
+    speakText(`${key} tanlandi.`);
+    if(currentQ<TOTAL)setTimeout(()=>showQ(currentQ+1),1600);
+  }
+}
+
+// Tiklaymiz
+setTimeout(()=>{
+  Object.entries(answers).forEach(([qId,key])=>{
+    const inp=document.getElementById(`ans_${qId}`);
+    if(inp)inp.value=key;
+    const btn=document.querySelector(`.opt[data-qid="${qId}"][data-key="${key}"]`);
+    if(btn)btn.classList.add('selected');
+    const dot=document.querySelector(`.q-dot[data-q="${qId}"]`);
+    if(dot)dot.classList.add('answered');
+  });
+  const cnt=Object.keys(answers).length;
+  document.getElementById('answered-count').textContent=cnt;
+  const pct=Math.round(cnt/TOTAL*100);
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-bar').style.width=pct+'%';
+},150);
+
+// ─── Anti-cheat ───
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    tabCount++;
+    document.getElementById('tab_switches').value = tabCount;
+  }
+});
+window.addEventListener('blur', () => {
+  tabCount++;
+  document.getElementById('tab_switches').value = tabCount;
+});
+window.addEventListener('beforeunload', e => {
+  e.preventDefault();
+  e.returnValue = "Test davom etmoqda. Chiqmoqchimisiz?";
+});
+
+// Klaviatura
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;
+  const map={'a':'A','A':'A','1':'A','b':'B','B':'B','2':'B','c':'C','C':'C','3':'C','d':'D','D':'D','4':'D'};
+  if(map[e.key]){const card=document.getElementById(`q-${currentQ}`);const btn=card?.querySelector(`.opt[data-key="${map[e.key]}"]`);if(btn)btn.click();}
+  if(e.key==='ArrowRight'||e.key==='Enter'){e.preventDefault();nextQ();}
+  if(e.key==='ArrowLeft'){e.preventDefault();prevQ();}
+  if((e.key==='r'||e.key==='R')&&IS_ACCESSIBLE)speakQuestion(currentQ-1);
+});
+
+{% if accessible %}
+// ═══ TTS — FAQAT INKLYUZIV TALABALAR ═══
+const questions_data = {{ q_json|safe }};
+let currentAudio=null, voiceTimeout=null;
+
+function speakText(text, onEnd){
+  if(currentAudio){currentAudio.pause();currentAudio=null;}
+  const audio=new Audio(`/dashboard/tts/?text=${encodeURIComponent(text)}`);
+  currentAudio=audio;
+  if(onEnd)audio.addEventListener('ended',onEnd,{once:true});
+  audio.play().catch(()=>{
+    if(!window.speechSynthesis)return;
+    window.speechSynthesis.cancel();
+    const utt=new SpeechSynthesisUtterance(text);
+    const v=window.speechSynthesis.getVoices();
+    const voice=v.find(x=>x.lang.startsWith('uz'))||v.find(x=>x.lang.startsWith('ru'))||v[0];
+    if(voice)utt.voice=voice;
+    utt.rate=0.88;
+    if(onEnd)utt.onend=onEnd;
+    window.speechSynthesis.speak(utt);
+  });
+}
+
+function speakQuestion(idx){
+  const q=questions_data[idx];
+  if(!q)return;
+  let text=`${idx+1}-savol. ${q.text}. `;
+  q.options.forEach(o=>{text+=`${o.k}: ${o.t}. `;});
+  document.getElementById('tts-status').textContent=`${idx+1}-savol o'qilmoqda...`;
+  speakText(text,()=>{setTimeout(activateMic,400);});
+}
+
+function activateMic(){
+  // "Tuut" signali
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();const g=ctx.createGain();
+    osc.connect(g);g.connect(ctx.destination);
+    osc.frequency.value=880;
+    g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.3);
+  }catch(e){}
+  document.getElementById('tts-status').textContent='Quloq solmoqda... (A, B yoki C deng)';
+  document.getElementById('mic-btn').classList.add('listening');
+  startVoiceAnswer();
+}
+
+function startVoiceAnswer(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){document.getElementById('tts-status').textContent='Ovoz qabul qilinmadi — klaviatura ishlating';return;}
+  const rec=new SR();
+  rec.lang='uz-UZ';rec.maxAlternatives=3;rec.continuous=false;
+  rec.onresult=(e)=>{
+    const text=e.results[0][0].transcript.trim().toUpperCase();
+    const letter=['A','B','C','D'].find(l=>text.includes(l));
+    if(letter){
+      const btn=document.getElementById(`q-${currentQ}`)?.querySelector(`.opt[data-key="${letter}"]`);
+      if(btn)btn.click();
+    }else{
+      speakText(`Tushunmadim. Qaytadan A, B yoki C deng.`,()=>setTimeout(activateMic,500));
+    }
+    document.getElementById('mic-btn').classList.remove('listening');
+  };
+  rec.onerror=()=>{
+    document.getElementById('tts-status').textContent='Ovoz eshitilmadi — klaviatura ishlating';
+    document.getElementById('mic-btn').classList.remove('listening');
+  };
+  rec.onend=()=>document.getElementById('mic-btn').classList.remove('listening');
+  rec.start();
+  voiceTimeout=setTimeout(()=>{try{rec.stop();}catch(e){}document.getElementById('tts-status').textContent="Vaqt o'tdi — klaviatura ishlating";},7000);
+}
+
+// Sahifa ochilganda birinchi click dan keyin o'qiydi
+document.addEventListener('click',()=>{if(!currentAudio)speakQuestion(currentQ-1);},{once:true});
+setTimeout(()=>{if(!currentAudio)speakQuestion(currentQ-1);},800);
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base/base.html" %}
+{% block title %}AI Tahlil jurnali{% endblock %}
+{% block page_title %}AI Tahlil jurnali{% endblock %}
+{% block page_subtitle %}O'qituvchilar topshiriqlarining sillabus tahlili{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_kafedra.html' %}{% endblock %}
+{% block content %}
+<div class="flex gap-3 mb-5 flex-wrap">
+  <form method="get" class="flex items-center gap-2">
+    <select name="teacher" onchange="this.form.submit()" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be]">
+      <option value="">Barcha o'qituvchilar</option>
+      {% for t in teachers %}<option value="{{ t.pk }}" {% if sel_teacher == t.pk|stringformat:'s' %}selected{% endif %}>{{ t.full_name }}</option>{% endfor %}
+    </select>
+    {% if sel_teacher %}<a href="?" class="text-sm text-slate-500 hover:text-slate-700">Tozalash</a>{% endif %}
+  </form>
+</div>
+<div class="card overflow-x-auto">
+<table class="w-full text-sm">
+  <thead><tr class="bg-slate-50 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-200">
+    <th class="px-5 py-3 text-left">Topshiriq</th>
+    <th class="px-4 py-3 text-left">O'qituvchi</th>
+    <th class="px-4 py-3 text-left">Fan</th>
+    <th class="px-4 py-3 text-center">AI baho</th>
+    <th class="px-4 py-3 text-left">Izoh</th>
+    <th class="px-4 py-3 text-left">Sana</th>
+  </tr></thead>
+  <tbody class="divide-y divide-slate-100">
+  {% for row in rows %}
+  <tr class="hover:bg-slate-50/50">
+    <td class="px-5 py-4">
+      <p class="font-semibold text-slate-900">{{ row.assignment.title }}</p>
+      <span class="text-[10px] font-bold px-1.5 py-0.5 rounded {% if row.assignment.assignment_type == 'test' %}bg-blue-100 text-blue-700{% else %}bg-purple-100 text-purple-700{% endif %}">{{ row.assignment.get_assignment_type_display }}</span>
+    </td>
+    <td class="px-4 py-4">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white text-xs font-bold">{{ row.assignment.teacher.initials }}</div>
+        <span class="text-slate-700">{{ row.assignment.teacher.full_name }}</span>
+      </div>
+    </td>
+    <td class="px-4 py-4 text-slate-500 text-xs">{{ row.assignment.subject.name }}</td>
+    <td class="px-4 py-4 text-center">
+      {% if row.assignment.ai_syllabus_score %}
+      <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-sm
+        {% if row.assignment.ai_syllabus_score >= 85 %}bg-green-100 text-green-700
+        {% elif row.assignment.ai_syllabus_score >= 65 %}bg-yellow-100 text-yellow-700
+        {% else %}bg-red-100 text-red-700{% endif %}">
+        <span class="material-symbols-outlined text-[15px]">
+          {% if row.assignment.ai_syllabus_score >= 85 %}check_circle{% elif row.assignment.ai_syllabus_score >= 65 %}warning{% else %}error{% endif %}
+        </span>
+        {{ row.assignment.ai_syllabus_score|floatformat:0 }}%
+      </div>
+      {% else %}<span class="text-slate-300">Tekshirilmagan</span>{% endif %}
+    </td>
+    <td class="px-4 py-4 text-xs text-slate-500 max-w-xs">{{ row.assignment.ai_syllabus_feedback|truncatechars:80|default:"—" }}</td>
+    <td class="px-4 py-4 text-xs text-slate-400">{{ row.assignment.created_at|date:"d.m.Y" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="py-10 text-center text-slate-400">Hali AI tekshiruvi amalga oshirilmagan</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
