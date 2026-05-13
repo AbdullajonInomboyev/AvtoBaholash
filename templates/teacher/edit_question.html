@@ -1,0 +1,202 @@
+{% extends "base/base.html" %}
+{% block title %}Savol tahrirlash{% endblock %}
+{% block page_title %}Savol #{{ q.order }} tahrirlash{% endblock %}
+{% block page_subtitle %}{{ assignment.title }}{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="max-w-5xl mx-auto space-y-5 pb-24">
+  {% csrf_token %}
+
+  <!-- Savol matni -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <h3 class="font-bold text-slate-900" style="font-family:'Manrope',sans-serif">Savol matni</h3>
+      <div class="flex gap-2 items-center">
+        <span class="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{{ q.get_difficulty_display }}</span>
+        <span class="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded">{{ q.points }} ball</span>
+        <button type="button" onclick="document.getElementById('latex-help').classList.toggle('hidden')" class="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded hover:bg-amber-100">
+          ƒ LaTeX yordam
+        </button>
+      </div>
+    </div>
+
+    <!-- LaTeX yordam (yashirin, kerak bo'lsa ochiladi) -->
+    <div id="latex-help" class="hidden mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
+      <p><code class="bg-white px-1.5 py-0.5 rounded font-mono">$x^2 + y$</code> — daraja</p>
+      <p><code class="bg-white px-1.5 py-0.5 rounded font-mono">$\frac{a}{b}$</code> — kasr</p>
+      <p><code class="bg-white px-1.5 py-0.5 rounded font-mono">$\sqrt{x}$</code> — ildiz</p>
+      <p><code class="bg-white px-1.5 py-0.5 rounded font-mono">$\int_0^1 f(x)dx$</code> — integral</p>
+      <p><code class="bg-white px-1.5 py-0.5 rounded font-mono">$$\frac{x^2+1}{y-2}$$</code> — alohida qatorda</p>
+    </div>
+
+    <textarea name="text" rows="4" required oninput="renderPreview('text-preview', this.value)"
+      class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none font-mono">{{ q.text }}</textarea>
+
+    <div class="mt-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
+      <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Ko'rinishi:</p>
+      <div id="text-preview" class="text-sm text-slate-800 leading-relaxed">{{ q.text }}</div>
+    </div>
+
+    <!-- Savol rasmi -->
+    <div class="mt-4 pt-4 border-t border-slate-100">
+      <p class="text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Savol rasmi</p>
+      <div class="flex items-start gap-4">
+        <!-- Hozirgi yoki preview rasm -->
+        <div class="w-32 h-32 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0" id="image-preview-wrap">
+          {% if q.image %}
+            <img src="{{ q.image.url }}" id="image-preview" class="w-full h-full object-contain">
+          {% else %}
+            <img src="" id="image-preview" class="w-full h-full object-contain hidden">
+            <span class="material-symbols-outlined text-slate-300 text-[36px]" id="image-placeholder">image</span>
+          {% endif %}
+        </div>
+        <div class="flex-1">
+          <input type="file" name="image" accept="image/*" onchange="previewImage(this, 'image-preview', 'image-placeholder')"
+            class="text-sm text-slate-600 w-full file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+          <p class="text-xs text-slate-400 mt-2">Yangi rasm yuklang yoki avvalgisini saqlang</p>
+          {% if q.image %}
+          <label class="flex items-center gap-2 cursor-pointer text-xs mt-2">
+            <input type="checkbox" name="image_clear" value="1" class="rounded text-red-600">
+            <span class="text-red-600 font-semibold">Rasmni o'chirish</span>
+          </label>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variantlar -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 mb-4" style="font-family:'Manrope',sans-serif">Variantlar</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for letter in 'ABCD' %}
+      <div class="border-2 rounded-xl p-4 transition-all {% if q.correct_answer == letter %}border-green-400 bg-green-50/30{% else %}border-slate-200{% endif %}">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-black text-slate-700 uppercase">Variant {{ letter }}</span>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="correct_answer" value="{{ letter }}"
+              {% if q.correct_answer == letter %}checked{% endif %}
+              class="w-4 h-4 text-green-600">
+            <span class="text-xs font-bold text-green-700">To'g'ri javob</span>
+          </label>
+        </div>
+
+        <!-- Matn -->
+        <textarea name="option_{{ letter|lower }}" rows="2" oninput="renderPreview('preview-{{ letter|lower }}', this.value)"
+          class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none font-mono mb-2">{% if letter == 'A' %}{{ q.option_a }}{% elif letter == 'B' %}{{ q.option_b }}{% elif letter == 'C' %}{{ q.option_c }}{% else %}{{ q.option_d }}{% endif %}</textarea>
+
+        <!-- LaTeX Preview -->
+        <div class="p-2 bg-slate-50 rounded-lg text-sm text-slate-800 min-h-[32px] border border-slate-100" id="preview-{{ letter|lower }}">
+          {% if letter == 'A' %}{{ q.option_a }}{% elif letter == 'B' %}{{ q.option_b }}{% elif letter == 'C' %}{{ q.option_c }}{% else %}{{ q.option_d }}{% endif %}
+        </div>
+
+        <!-- Variant rasmi (preview bilan) -->
+        <div class="mt-3 pt-3 border-t border-slate-100">
+          <div class="flex items-start gap-3">
+            <!-- Rasm preview -->
+            <div class="w-16 h-16 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {% if letter == 'A' and q.image_a %}
+                <img src="{{ q.image_a.url }}" id="img-prev-{{ letter|lower }}" class="w-full h-full object-contain">
+              {% elif letter == 'B' and q.image_b %}
+                <img src="{{ q.image_b.url }}" id="img-prev-{{ letter|lower }}" class="w-full h-full object-contain">
+              {% elif letter == 'C' and q.image_c %}
+                <img src="{{ q.image_c.url }}" id="img-prev-{{ letter|lower }}" class="w-full h-full object-contain">
+              {% elif letter == 'D' and q.image_d %}
+                <img src="{{ q.image_d.url }}" id="img-prev-{{ letter|lower }}" class="w-full h-full object-contain">
+              {% else %}
+                <img src="" id="img-prev-{{ letter|lower }}" class="w-full h-full object-contain hidden">
+                <span class="material-symbols-outlined text-slate-300 text-[20px]" id="img-ph-{{ letter|lower }}">image</span>
+              {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <input type="file" name="image_{{ letter|lower }}" accept="image/*"
+                onchange="previewImage(this, 'img-prev-{{ letter|lower }}', 'img-ph-{{ letter|lower }}')"
+                class="text-xs text-slate-600 w-full file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-slate-100 file:text-slate-700">
+              {% if letter == 'A' and q.image_a or letter == 'B' and q.image_b or letter == 'C' and q.image_c or letter == 'D' and q.image_d %}
+              <label class="flex items-center gap-1 cursor-pointer text-[10px] mt-1.5">
+                <input type="checkbox" name="image_{{ letter|lower }}_clear" value="1" class="rounded text-red-600">
+                <span class="text-red-600 font-semibold">O'chirish</span>
+              </label>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Qo'shimcha -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 mb-4" style="font-family:'Manrope',sans-serif">Qo'shimcha ma'lumotlar</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-wider">Mavzu</label>
+        <input type="text" name="topic" value="{{ q.topic }}" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-wider">Qiyinlik</label>
+        <select name="difficulty" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+          <option value="easy" {% if q.difficulty == 'easy' %}selected{% endif %}>Oson</option>
+          <option value="medium" {% if q.difficulty == 'medium' %}selected{% endif %}>O'rta</option>
+          <option value="hard" {% if q.difficulty == 'hard' %}selected{% endif %}>Qiyin</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-wider">Ball</label>
+        <input type="number" name="points" min="1" max="100" value="{{ q.points }}" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
+      </div>
+    </div>
+  </div>
+
+  <!-- Action tugmalari (sticky pastida) -->
+  <div class="fixed bottom-0 left-0 lg:left-64 right-0 bg-white border-t border-slate-200 px-6 py-3 flex gap-3 justify-end z-30 shadow-lg">
+    <a href="{% url 'core:teacher_edit_assignment' assignment.pk %}" class="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200">
+      Bekor qilish
+    </a>
+    <button type="submit" class="px-8 py-2.5 bg-[#00236f] text-white rounded-xl font-bold text-sm hover:bg-[#1e3a8a] flex items-center gap-2">
+      <span class="material-symbols-outlined text-[16px]">save</span> Saqlash
+    </button>
+  </div>
+</form>
+
+<script>
+// LaTeX preview render
+function renderPreview(elemId, text) {
+  const el = document.getElementById(elemId);
+  if (!el) return;
+  el.textContent = text;  // Avval matn sifatida o'rnatamiz
+  // MathJax bilan qayta render qilamiz
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    MathJax.typesetPromise([el]).catch(e => console.warn('MathJax:', e));
+  }
+}
+
+// Rasm yuklash preview
+function previewImage(input, imgId, phId) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = document.getElementById(imgId);
+    if (img) {
+      img.src = e.target.result;
+      img.classList.remove('hidden');
+    }
+    const ph = document.getElementById(phId);
+    if (ph) ph.classList.add('hidden');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// Sahifa yuklanganda barcha preview'larni MathJax bilan render qilamiz
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      MathJax.typesetPromise().catch(e => console.warn('MathJax init:', e));
+    }
+  }, 500);
+});
+</script>
+{% endblock %}

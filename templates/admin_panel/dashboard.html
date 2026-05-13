@@ -1,0 +1,73 @@
+{% extends "base/base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Boshqaruv Paneli{% endblock %}
+{% block page_subtitle %}Tizimning umumiy holati{% endblock %}
+
+{% block sidebar_nav %}{% include 'includes/sidebar_admin.html' %}{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+  {% for label, val, icon, color, url in stat_cards %}
+  <a href="{{ url }}" class="card flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+    <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 {{ color }}">
+      <span class="material-symbols-outlined text-[20px]">{{ icon }}</span>
+    </div>
+    <div><p class="text-2xl font-extrabold text-slate-900 font-hl">{{ val }}</p><p class="text-xs text-slate-500">{{ label }}</p></div>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Kafedralar -->
+  <div class="lg:col-span-2 card">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-bold text-slate-900 font-hl">Kafedralar</h3>
+      <a href="{% url 'core:admin_departments' %}" class="text-xs text-[#0058be] font-semibold hover:underline flex items-center gap-1">
+        Barchasini ko'rish <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+      </a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead><tr class="border-b border-slate-100 text-xs text-slate-400 uppercase tracking-wider">
+          <th class="pb-3">Kafedra</th><th class="pb-3">O'qituvchilar</th><th class="pb-3">Talabalar</th><th class="pb-3">Fanlar</th><th class="pb-3">Holat</th>
+        </tr></thead>
+        <tbody class="divide-y divide-slate-50">
+          {% for d in departments %}
+          <tr class="hover:bg-slate-50/50 transition-colors">
+            <td class="py-3 font-semibold text-slate-800">{{ d.name }}</td>
+            <td class="py-3 text-slate-500">{{ d.tc }}</td>
+            <td class="py-3 text-slate-500">{{ d.sc }}</td>
+            <td class="py-3 text-slate-500">{{ d.sub_c }}</td>
+            <td class="py-3"><span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded">Faol</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Recent users -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">Yangi foydalanuvchilar</h3>
+    <div class="space-y-3">
+      {% for u in recent_users %}
+      <a href="/dashboard/admin/users/" class="flex items-center gap-3 hover:bg-slate-50 -mx-2 px-2 py-1.5 rounded-lg transition-colors">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{{ u.initials }}</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-slate-900 truncate">{{ u.full_name }}</p>
+          <p class="text-xs text-slate-500">{{ u.get_role_display }}</p>
+        </div>
+        <span class="text-xs text-slate-400">{{ u.date_joined|date:"d.m" }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    <a href="{% url 'core:admin_users' %}" class="mt-4 block text-center text-xs text-[#0058be] font-semibold hover:underline">Barcha foydalanuvchilar →</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Build stat cards from template
+</script>
+{% endblock %}

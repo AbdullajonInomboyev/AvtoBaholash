@@ -1,0 +1,75 @@
+{% extends "base/base.html" %}
+{% block title %}Topshiriqlar{% endblock %}
+{% block page_title %}Topshiriqlarim{% endblock %}
+{% block page_subtitle %}Barcha faol topshiriqlar{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_student.html' %}{% endblock %}
+{% block content %}
+<!-- Filter tabs -->
+<div class="flex gap-2 mb-5">
+  {% for val,label in filter_tabs %}
+  <a href="?status={{ val }}" class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors {% if sf == val %}bg-[#00236f] text-white{% else %}bg-white border border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="space-y-3">
+  {% for row in rows %}
+  {% with a=row.assignment s=row.status sub=row.submission %}
+  <div class="card flex items-center gap-5 hover:border-[#0058be]/30 transition-colors border border-slate-100">
+    <!-- Type icon -->
+    <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
+      {% if a.assignment_type == 'test' %}bg-blue-100 text-blue-600
+      {% elif a.assignment_type == 'written' %}bg-purple-100 text-purple-600
+      {% else %}bg-green-100 text-green-600{% endif %}">
+      <span class="material-symbols-outlined">{% if a.assignment_type == 'test' %}quiz{% elif a.assignment_type == 'written' %}edit_note{% else %}attach_file{% endif %}</span>
+    </div>
+    <!-- Info -->
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <p class="text-base font-bold text-slate-900">{{ a.title }}</p>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded
+          {% if a.assignment_type == 'test' %}bg-blue-100 text-blue-700
+          {% elif a.assignment_type == 'written' %}bg-purple-100 text-purple-700
+          {% else %}bg-green-100 text-green-700{% endif %}">
+          {{ a.get_assignment_type_display }}
+        </span>
+      </div>
+      <p class="text-sm text-slate-500 mt-0.5">{{ a.subject.name }}</p>
+      <div class="flex items-center gap-4 mt-1.5 text-xs">
+        <span class="flex items-center gap-1 {% if a.is_expired %}text-red-500{% else %}text-slate-500{% endif %}">
+          <span class="material-symbols-outlined text-[12px]">schedule</span>
+          Muddat: {{ a.deadline|date:"d.m.Y H:i" }}
+        </span>
+        {% if a.assignment_type == 'test' %}<span class="text-slate-400">{{ a.duration_minutes }} daqiqa</span>{% endif %}
+      </div>
+    </div>
+    <!-- Status + action -->
+    <div class="flex items-center gap-3 flex-shrink-0">
+      {% if s == 'submitted' %}
+        <span class="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-green-100 text-green-700 flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">check_circle</span> Topshirildi
+        </span>
+        {% if sub %}
+        <a href="{% url 'core:student_result' pk=sub.pk %}" class="text-xs font-bold text-[#0058be] hover:underline flex items-center gap-1">
+          Natija <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+        </a>
+        {% endif %}
+      {% elif s == 'expired' %}
+        <span class="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500">Muddati o'tdi</span>
+      {% else %}
+        <a href="{% url 'core:student_submit' pk=a.pk %}" class="flex items-center gap-1.5 bg-[#00236f] text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-[#1e3a8a] transition-colors">
+          {% if a.assignment_type == 'test' %}Testni boshlash{% else %}Topshirish{% endif %}
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endwith %}
+  {% empty %}
+  <div class="card text-center py-14">
+    <span class="material-symbols-outlined text-5xl text-slate-300">assignment</span>
+    <p class="text-slate-500 font-semibold mt-3">Topshiriqlar yo'q</p>
+    <p class="text-sm text-slate-400 mt-1">Guruhingizga topshiriq berilganida bu yerda ko'rinadi</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

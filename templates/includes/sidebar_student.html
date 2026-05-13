@@ -1,0 +1,18 @@
+{% with url_name=request.resolver_match.url_name app=request.resolver_match.app_name|default:'' %}
+<a href="{% url 'core:student_dashboard' %}" class="nav-link {% if url_name == 'student_dashboard' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">dashboard</span>Boshqaruv paneli
+</a>
+<a href="{% url 'core:student_assignments' %}" class="nav-link {% if url_name == 'student_assignments' or url_name == 'student_submit' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">assignment</span>Topshiriqlar
+</a>
+<a href="{% url 'core:student_progress' %}" class="nav-link {% if url_name == 'student_progress' or url_name == 'student_result' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">trending_up</span>Natijalarim
+</a>
+<a href="{% url 'analytics:student' %}" class="nav-link {% if app == 'analytics' and url_name == 'student' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">bar_chart</span>Rivojlanish
+</a>
+<a href="{% url 'core:notifications' %}" class="nav-link {% if url_name == 'notifications' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">notifications</span>Bildirishnomalar
+  {% if unread_count %}<span class="ml-auto bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{{ unread_count }}</span>{% endif %}
+</a>
+{% endwith %}

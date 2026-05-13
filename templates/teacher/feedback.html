@@ -1,0 +1,62 @@
+{% extends "base/base.html" %}
+{% block title %}Feedbacklar{% endblock %}
+{% block page_title %}Talabalar shikoyatlari{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block content %}
+{% if not feedbacks %}
+<div class="card text-center py-14"><span class="material-symbols-outlined text-5xl text-slate-300">feedback</span><p class="text-slate-500 mt-3 font-semibold">Shikoyat yo'q</p></div>
+{% else %}
+<div class="space-y-4">
+{% for fb in feedbacks %}
+<div class="card">
+  <div class="flex items-start gap-4">
+    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">{{ fb.student.initials }}</div>
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-3 flex-wrap">
+        <p class="font-bold text-slate-900">{{ fb.student.full_name }}</p>
+        <span class="text-xs text-slate-500">{{ fb.submission.assignment.title }}</span>
+        <span class="ml-auto text-xs font-bold px-2 py-0.5 rounded {% if fb.status == 'open' %}bg-orange-100 text-orange-700{% elif fb.status == 'answered' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">{{ fb.get_status_display }}</span>
+      </div>
+      <p class="text-sm text-slate-700 mt-2 bg-slate-50 rounded-lg p-3">{{ fb.message }}</p>
+      <p class="text-xs text-slate-400 mt-1">{{ fb.created_at|date:"d.m.Y H:i" }}</p>
+      {% with sub=fb.submission %}
+      {% if sub.ai_score %}
+      <div class="mt-2 p-3 bg-blue-50 rounded-xl text-xs">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-bold text-blue-900">AI baho:</span>
+          <span class="font-black text-[#00236f]">{{ sub.ai_score|floatformat:0 }}/100</span>
+          <span class="font-bold text-blue-900 ml-2">Baho:</span>
+          <span class="font-bold {% if sub.grade_color == 'green' %}text-green-700{% elif sub.grade_color == 'blue' %}text-blue-700{% elif sub.grade_color == 'yellow' %}text-yellow-700{% else %}text-red-700{% endif %}">{{ sub.grade_letter }}</span>
+        </div>
+        {% if sub.ai_feedback %}<p class="text-blue-800">{{ sub.ai_feedback|truncatewords:30 }}</p>{% endif %}
+        {% if sub.ai_strengths %}
+        <p class="text-green-700 mt-1">✅ {{ sub.ai_strengths|join:" · " }}</p>
+        {% endif %}
+        {% if sub.ai_improvements %}
+        <p class="text-orange-700 mt-0.5">💡 {{ sub.ai_improvements|join:" · " }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% endwith %}
+      {% if fb.teacher_response %}
+      <div class="mt-3 bg-green-50 rounded-lg p-3 border border-green-100">
+        <p class="text-xs font-bold text-green-700 mb-1">Sizning javobingiz:</p>
+        <p class="text-sm text-green-800">{{ fb.teacher_response }}</p>
+      </div>
+      {% elif fb.status == 'open' %}
+      <form method="post" class="mt-3">
+        {% csrf_token %}
+        <input type="hidden" name="fb_id" value="{{ fb.pk }}">
+        <textarea name="response" rows="2" required placeholder="Javobingizni yozing..." class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be] resize-none mb-2"></textarea>
+        <button type="submit" class="flex items-center gap-1.5 bg-[#00236f] text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-[#1e3a8a] transition-colors">
+          <span class="material-symbols-outlined text-[15px]">send</span> Javob yuborish
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

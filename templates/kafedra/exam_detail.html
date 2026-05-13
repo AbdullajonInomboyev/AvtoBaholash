@@ -1,0 +1,169 @@
+{% extends "base/base.html" %}
+{% block title %}{{ exam.subject.name }} imtihoni{% endblock %}
+{% block page_title %}{{ exam.subject.name }} imtihoni{% endblock %}
+{% block page_subtitle %}{{ exam.exam_date|date:"d.m.Y H:i" }}{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_kafedra.html' %}{% endblock %}
+
+{% block content %}
+<!-- Imtihon haqida -->
+<div class="card mb-5">
+  <div class="flex items-start gap-5">
+    <!-- Sana kartochkasi -->
+    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-50 to-orange-50 border border-red-100 flex flex-col items-center justify-center flex-shrink-0">
+      <span class="text-2xl font-black text-red-700">{{ exam.exam_date|date:"d" }}</span>
+      <span class="text-[10px] uppercase font-bold text-red-600 tracking-wider">{{ exam.exam_date|date:"M" }}</span>
+    </div>
+    <!-- Tafsilotlar -->
+    <div class="flex-1">
+      <h2 class="font-bold text-slate-900 text-xl mb-1" style="font-family:'Manrope',sans-serif">{{ exam.subject.name }}</h2>
+      <div class="flex flex-wrap gap-3 text-sm text-slate-600 mb-2">
+        <span class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">schedule</span>
+          {{ exam.exam_date|date:"H:i" }} · {{ exam.duration_minutes }} daqiqa
+        </span>
+        {% if exam.room %}
+        <span class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">room</span>
+          {{ exam.room }}
+        </span>
+        {% endif %}
+        <span class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">groups</span>
+          {% for g in exam.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </span>
+      </div>
+      {% if exam.days_remaining > 0 %}
+      <p class="text-xs text-blue-600 font-bold">⏰ {{ exam.days_remaining }} kun qoldi</p>
+      {% elif exam.days_remaining == 0 %}
+      <p class="text-xs text-red-600 font-bold">🔥 Bugun!</p>
+      {% else %}
+      <p class="text-xs text-slate-400">O'tib ketgan</p>
+      {% endif %}
+    </div>
+    <!-- Tahrirlash tugmasi -->
+    <button type="button" onclick="document.getElementById('edit-exam-modal').classList.remove('hidden')" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500" title="Tahrirlash">
+      <span class="material-symbols-outlined">edit</span>
+    </button>
+  </div>
+  {% if exam.notes %}
+  <hr class="my-4 border-slate-100">
+  <p class="text-sm text-slate-600">{{ exam.notes }}</p>
+  {% endif %}
+</div>
+
+<!-- Biriktirilgan topshiriqlar -->
+<div class="card mb-5">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-bold text-slate-900" style="font-family:'Manrope',sans-serif">Biriktirilgan topshiriqlar ({{ attached_assignments|length }})</h3>
+    <button type="button" onclick="document.getElementById('attach-modal').classList.remove('hidden')" class="flex items-center gap-1.5 bg-[#00236f] text-white text-sm font-bold px-3 py-2 rounded-lg hover:bg-[#1e3a8a]">
+      <span class="material-symbols-outlined text-[16px]">add</span> Topshiriq biriktirish
+    </button>
+  </div>
+  <div class="space-y-3">
+    {% for a in attached_assignments %}
+    <div class="flex items-center gap-4 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 group">
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 {% if a.assignment_type == 'test' %}bg-blue-100 text-blue-600{% elif a.assignment_type == 'written' %}bg-purple-100 text-purple-600{% else %}bg-green-100 text-green-600{% endif %}">
+        <span class="material-symbols-outlined">{% if a.assignment_type == 'test' %}quiz{% elif a.assignment_type == 'written' %}edit_note{% else %}attach_file{% endif %}</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <p class="font-bold text-slate-900">{{ a.title }}</p>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded {% if a.status == 'active' %}bg-green-100 text-green-700{% elif a.status == 'closed' %}bg-slate-100 text-slate-500{% else %}bg-yellow-100 text-yellow-700{% endif %}">{{ a.get_status_display }}</span>
+          <span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{{ a.get_assignment_type_display }}</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-0.5">
+          {{ a.teacher.full_name }} · {{ a.questions.count }} savol · {{ a.max_score }} ball max
+        </p>
+      </div>
+      <form method="post" onsubmit="return confirm('Topshiriq uzilsinmi? (Topshiriq o\'chmaydi)')" class="flex-shrink-0">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="detach_assignment">
+        <input type="hidden" name="assignment_id" value="{{ a.pk }}">
+        <button type="submit" class="text-red-400 hover:text-red-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50" title="Uzish">
+          <span class="material-symbols-outlined text-[18px]">link_off</span>
+        </button>
+      </form>
+    </div>
+    {% empty %}
+    <div class="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl">
+      <span class="material-symbols-outlined text-slate-300 text-[48px]">link</span>
+      <p class="text-sm text-slate-500 mt-2 font-semibold">Hali topshiriq biriktirilmagan</p>
+      <p class="text-xs text-slate-400 mt-1">Imtihon vaqtida talabalar topshiradigan ishlarni biriktiring</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Biriktirish modal -->
+<div id="attach-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl my-4 max-h-[85vh] overflow-y-auto">
+    <div class="flex justify-between items-start mb-4">
+      <div>
+        <h3 class="font-bold text-slate-900 text-lg" style="font-family:'Manrope',sans-serif">Topshiriq biriktirish</h3>
+        <p class="text-xs text-slate-500 mt-0.5">{{ exam.subject.name }} fani bo'yicha mavjud topshiriqlar</p>
+      </div>
+      <button type="button" onclick="document.getElementById('attach-modal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+        <span class="material-symbols-outlined text-slate-400">close</span>
+      </button>
+    </div>
+
+    <div class="space-y-2">
+      {% for a in available_assignments %}
+      <form method="post" class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-[#00236f] hover:bg-blue-50 transition-all group">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="attach_assignment">
+        <input type="hidden" name="assignment_id" value="{{ a.pk }}">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 {% if a.assignment_type == 'test' %}bg-blue-100 text-blue-600{% elif a.assignment_type == 'written' %}bg-purple-100 text-purple-600{% else %}bg-green-100 text-green-600{% endif %}">
+          <span class="material-symbols-outlined text-[18px]">{% if a.assignment_type == 'test' %}quiz{% elif a.assignment_type == 'written' %}edit_note{% else %}attach_file{% endif %}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-bold text-slate-900 truncate">{{ a.title }}</p>
+          <p class="text-xs text-slate-500">{{ a.teacher.full_name }} · {{ a.questions.count }} savol · {{ a.get_assignment_type_display }}</p>
+        </div>
+        <button type="submit" class="bg-[#00236f] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#1e3a8a] flex-shrink-0">
+          Biriktirish
+        </button>
+      </form>
+      {% empty %}
+      <div class="text-center py-10">
+        <span class="material-symbols-outlined text-slate-300 text-[48px]">inbox</span>
+        <p class="text-sm text-slate-500 mt-2 font-semibold">Bu fan bo'yicha topshiriq topilmadi</p>
+        <p class="text-xs text-slate-400 mt-1">O'qituvchi avval topshiriq yaratishi kerak</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Imtihon tahrirlash modal -->
+<div id="edit-exam-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md my-4">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-bold text-slate-900">Imtihon ma'lumotlari</h3>
+      <button type="button" onclick="document.getElementById('edit-exam-modal').classList.add('hidden')"><span class="material-symbols-outlined text-slate-400">close</span></button>
+    </div>
+    <form method="post" class="space-y-3">
+      {% csrf_token %}<input type="hidden" name="action" value="update">
+      <div>
+        <label class="text-xs font-semibold text-slate-600 block mb-1">Sana va vaqt *</label>
+        <input type="datetime-local" name="exam_date" value="{{ exam.exam_date|date:'Y-m-d\TH:i' }}" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Xona</label>
+          <input type="text" name="room" value="{{ exam.room }}" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Davomiyligi (daqiqa)</label>
+          <input type="number" name="duration" value="{{ exam.duration_minutes }}" min="30" max="300" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-slate-600 block mb-1">Izohlar</label>
+        <textarea name="notes" rows="3" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm">{{ exam.notes }}</textarea>
+      </div>
+      <button type="submit" class="w-full bg-[#00236f] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">Saqlash</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base/base.html" %}
+{% block title %}Sozlamalar{% endblock %}
+{% block page_title %}Tizim sozlamalari{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_admin.html' %}{% endblock %}
+{% block content %}
+<div class="max-w-xl card">
+  <h3 class="font-bold text-slate-900 font-hl mb-5">Tizim sozlamalari</h3>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+      <span class="material-symbols-outlined text-blue-500">info</span>
+      <div><p class="text-sm font-semibold text-blue-900">AI integratsiyasi</p>
+        <p class="text-xs text-blue-700 mt-0.5">ANTHROPIC_API_KEY .env faylda sozlangan: <strong>{% if settings.ANTHROPIC_API_KEY %}Ha ✓{% else %}Yo'q ✗{% endif %}</strong></p></div>
+    </div>
+    <div>
+      <label class="text-sm font-bold text-slate-700 block mb-1">Tizim nomi</label>
+      <input value="AvtoBaholash" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]">
+    </div>
+    <button type="submit" class="flex items-center gap-2 bg-[#00236f] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-[#1e3a8a]"><span class="material-symbols-outlined text-[16px]">save</span> Saqlash</button>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+// Pass settings to template context
+</script>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base/base.html" %}
+{% block title %}Tahlil{% endblock %}
+{% block page_title %}Tahlil va statistika{% endblock %}
+{% block page_subtitle %}{% if dept %}{{ dept.name }}{% else %}Kafedra biriktirilmagan{% endif %}{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_kafedra.html' %}{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+{% if not dept %}
+<div class="bg-orange-50 border border-orange-200 rounded-xl p-5 flex items-center gap-4 mb-6">
+  <span class="material-symbols-outlined text-3xl text-orange-500">warning</span>
+  <div>
+    <p class="font-bold text-orange-900">Kafedra biriktirilmagan</p>
+    <p class="text-sm text-orange-700 mt-0.5">Hisobotlarni ko'rish uchun administrator sizni kafedraga biriktirishi kerak.</p>
+  </div>
+</div>
+{% else %}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl" style="color:{% if total_ai > 0 %}{% if ai_excellent > ai_poor %}#22c55e{% else %}#f59e0b{% endif %}{% else %}#9ca3af{% endif %}">
+      {% if total_ai %}{{ ai_excellent|floatformat:0 }}/{{ total_ai }}{% else %}—{% endif %}
+    </div>
+    <p class="text-xs text-slate-500 mt-1">AI silabus: A'lo baholangan</p>
+  </div>
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl" style="color:{% if ai_poor > 0 %}#ef4444{% else %}#22c55e{% endif %}">
+      {{ ai_poor }}
+    </div>
+    <p class="text-xs text-slate-500 mt-1">Sillabusdan chetlashgan</p>
+  </div>
+  <div class="card text-center">
+    <div class="text-3xl font-extrabold font-hl text-[#0058be]">{{ topic_stats|length }}</div>
+    <p class="text-xs text-slate-500 mt-1">Tahlil qilingan mavzu</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <!-- Faollik grafigi -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">So'nggi 6 oy faolligi</h3>
+    <canvas id="activityChart" height="200"></canvas>
+  </div>
+  <!-- AI baho taqsimoti -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">AI Sillabus baholash natijalari</h3>
+    <canvas id="aiChart" height="200"></canvas>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <!-- O'qituvchilar reytingi -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">O'qituvchilar reytingi (AI bali)</h3>
+    <div class="space-y-3">
+      {% for t in teachers %}
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="font-semibold text-slate-800">{{ t.full_name }}</span>
+          <span class="font-bold {% if t.avg_ai >= 85 %}text-green-600{% elif t.avg_ai >= 65 %}text-yellow-600{% elif t.avg_ai %}text-red-600{% else %}text-slate-400{% endif %}">
+            {% if t.avg_ai %}{{ t.avg_ai|floatformat:0 }}%{% else %}—{% endif %}
+          </span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2">
+          <div class="h-2 rounded-full {% if t.avg_ai >= 85 %}bg-green-500{% elif t.avg_ai >= 65 %}bg-yellow-400{% else %}bg-red-400{% endif %}"
+            style="width:{% if t.avg_ai %}{{ t.avg_ai|floatformat:0 }}{% else %}0{% endif %}%"></div>
+        </div>
+        <p class="text-xs text-slate-400 mt-0.5">{{ t.total_assignments }} ta topshiriq</p>
+      </div>
+      {% empty %}
+      <p class="text-slate-400 text-sm">Ma'lumot yo'q</p>
+      {% endfor %}
+    </div>
+  </div>
+  <!-- Mavzular bo'yicha xatolar -->
+  <div class="card">
+    <h3 class="font-bold text-slate-900 font-hl mb-4">Qaysi mavzularda ko'p xato?</h3>
+    <div class="space-y-2">
+      {% for ts in topic_stats %}
+      <div>
+        <div class="flex justify-between text-xs mb-0.5">
+          <span class="font-medium text-slate-700">{{ ts.topic|truncatechars:30 }}</span>
+          <span class="font-bold {% if ts.pct > 50 %}text-red-600{% elif ts.pct > 30 %}text-yellow-600{% else %}text-green-600{% endif %}">{{ ts.pct }}% xato</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-1.5">
+          <div class="h-1.5 rounded-full {% if ts.pct > 50 %}bg-red-400{% elif ts.pct > 30 %}bg-yellow-400{% else %}bg-green-400{% endif %}"
+            style="width:{{ ts.pct }}%"></div>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-slate-400 text-sm">Test javoblari mavjud bo'lsa tahlil ko'rinadi</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Fanlar bo'yicha -->
+<div class="card">
+  <h3 class="font-bold text-slate-900 font-hl mb-4">Fanlar bo'yicha o'rtacha ball</h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead><tr class="text-xs text-slate-400 uppercase border-b border-slate-100">
+        <th class="pb-3 text-left">Fan</th>
+        <th class="pb-3 text-center">Javoblar</th>
+        <th class="pb-3 text-center">O'rtacha ball</th>
+        <th class="pb-3 text-left">Holat</th>
+      </tr></thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for s in subjects %}
+        <tr class="hover:bg-slate-50/50">
+          <td class="py-3 font-semibold text-slate-900">{{ s.name }}</td>
+          <td class="py-3 text-center text-slate-500">{{ s.total_subs|default:"0" }}</td>
+          <td class="py-3 text-center">
+            {% if s.avg_score %}
+            <span class="font-bold {% if s.avg_score >= 75 %}text-green-600{% elif s.avg_score >= 55 %}text-yellow-600{% else %}text-red-600{% endif %}">
+              {{ s.avg_score|floatformat:1 }}
+            </span>
+            {% else %}<span class="text-slate-300">—</span>{% endif %}
+          </td>
+          <td class="py-3">
+            {% if s.avg_score %}
+            <div class="w-24 bg-slate-100 rounded-full h-2">
+              <div class="h-2 rounded-full {% if s.avg_score >= 75 %}bg-green-500{% elif s.avg_score >= 55 %}bg-yellow-400{% else %}bg-red-400{% endif %}"
+                style="width:{{ s.avg_score|floatformat:0 }}%"></div>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="py-8 text-center text-slate-400">Baholangan ishlar yo'q</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+const months = {{ months_json|safe }};
+new Chart(document.getElementById('activityChart'), {
+  type: 'bar',
+  data: {
+    labels: months.map(m => m.label),
+    datasets: [
+      { label: 'Topshiriqlar', data: months.map(m => m.assignments), backgroundColor: '#00236f99', borderRadius: 4 },
+      { label: 'Javoblar',     data: months.map(m => m.submissions), backgroundColor: '#0058be55', borderRadius: 4 },
+    ]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+});
+new Chart(document.getElementById('aiChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ["A'lo (85%+)", "Yaxshi (65-84%)", "Past (<65%)"],
+    datasets: [{ data: [{{ ai_excellent }}, {{ ai_good }}, {{ ai_poor }}], backgroundColor: ['#22c55e','#f59e0b','#ef4444'], borderWidth: 0 }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8"/>
+<meta name="color-scheme" content="light only"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>{% block title %}AvtoBaholash{% endblock %}</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- MathJax — formulalar uchun -->
+<script>
+MathJax = {
+  tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$', '$$']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{
+  colors:{"primary":"#00236f","primary-c":"#1e3a8a","secondary":"#0058be",
+    "surface":"#f8f9ff","surface-c":"#eaeef9","on-s":"#171c23","outline-v":"#c5c5d3","error":"#ba1a1a"},
+  fontFamily:{"headline":["Manrope","sans-serif"]}
+}}}
+</script>
+<style>
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
+body{font-family:'Inter',sans-serif}h1,h2,h3,.font-hl{font-family:'Manrope',sans-serif}
+.nav-link{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;font-size:13.5px;font-weight:600;color:#6b7280;text-decoration:none;transition:all .15s}
+.nav-link:hover{color:#1e3a8a;background:#e2e8f0}
+.nav-link.active{color:#1e3a8a;background:#e2e8f0;border-right:3px solid #00236f}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid #f1f5f9;padding:24px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#c5c5d3;border-radius:999px}
+</style>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% block extra_head %}{% endblock %}
+</head>
+<body class="bg-[#f8f9ff] text-[#171c23]">
+{% if user.is_authenticated %}
+
+<aside class="h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-slate-100 flex flex-col py-5 px-3 z-50 border-r border-slate-200 -translate-x-full lg:translate-x-0 transition-transform duration-300">
+  <a href="/" class="mb-7 px-2 flex items-center gap-3 group">
+    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white shadow-lg">
+      <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;font-size:22px">auto_stories</span>
+    </div>
+    <div>
+      <h1 class="text-[19px] font-bold tracking-tighter text-[#00236f] leading-none font-hl">AvtoBaholash</h1>
+      <span class="text-[9px] font-semibold text-slate-500 tracking-widest uppercase">
+        {% if user.is_admin %}Admin{% elif user.is_kafedra %}Kafedra Mudiri{% elif user.is_teacher %}O'qituvchi{% else %}Talaba{% endif %}
+      </span>
+    </div>
+  </a>
+  <nav class="flex-1 space-y-0.5">{% block sidebar_nav %}{% endblock %}</nav>
+  <div class="mt-auto pt-4 border-t border-slate-200 space-y-0.5">
+    <a href="{% url 'accounts:profile' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-200 transition-colors">
+      {% if user.avatar %}<img src="{{ user.avatar.url }}" class="w-9 h-9 rounded-full object-cover border-2 border-[#00236f]/20" alt="">
+      {% else %}<div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">{{ user.initials }}</div>{% endif %}
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-slate-900 truncate">{{ user.full_name }}</p>
+        <p class="text-[10px] text-slate-500 uppercase tracking-wider">{{ user.get_role_display }}</p>
+      </div>
+    </a>
+    <a href="{% url 'accounts:logout' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors text-sm font-semibold">
+      <span class="material-symbols-outlined text-[18px]">logout</span> Chiqish
+    </a>
+  </div>
+</aside>
+
+<header class="fixed top-0 right-0 left-0 lg:left-64 h-16 z-40 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 lg:px-6">
+  <!-- Mobile menu button -->
+  <button id="menu-btn" class="lg:hidden mr-2 p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+    onclick="document.querySelector('aside').classList.toggle('translate-x-0'); document.querySelector('aside').classList.toggle('-translate-x-full')">
+    <span class="material-symbols-outlined text-[22px]">menu</span>
+  </button>
+  <div>
+    <h2 class="text-[15px] font-bold text-slate-900 font-hl">{% block page_title %}{% endblock %}</h2>
+    <p class="text-xs text-slate-500">{% block page_subtitle %}{% endblock %}</p>
+  </div>
+  <div class="flex items-center gap-3">
+    <!-- Dark mode toggle -->
+    <button onclick="toggleDark()" title="Dark/Light mode"
+      class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-500"
+      style="flex-shrink:0">
+      <span class="material-symbols-outlined text-[20px]" id="dark-icon">dark_mode</span>
+    </button>
+    <a href="{% url 'core:notifications' %}" class="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-500">
+      <span class="material-symbols-outlined text-[20px]">notifications</span>
+      {% if unread_count %}<span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{{ unread_count }}</span>{% endif %}
+    </a>
+    {% if user.avatar %}<img src="{{ user.avatar.url }}" class="w-9 h-9 rounded-full object-cover border-2 border-[#00236f]/20" alt="">
+    {% else %}<div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white text-sm font-bold">{{ user.initials }}</div>{% endif %}
+    <div class="hidden sm:block"><p class="text-sm font-bold text-slate-900">{{ user.full_name }}</p><p class="text-[10px] text-slate-400 uppercase">{{ user.get_role_display }}</p></div>
+  </div>
+</header>
+
+<main class="ml-0 lg:ml-64 pt-16 min-h-screen transition-all duration-300">
+{% if messages %}
+<div class="px-6 pt-4 space-y-2">
+  {% for msg in messages %}
+  <div class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium border
+    {% if msg.tags == 'success' %}bg-green-50 text-green-800 border-green-200
+    {% elif msg.tags == 'error' %}bg-red-50 text-red-800 border-red-200
+    {% elif msg.tags == 'warning' %}bg-yellow-50 text-yellow-800 border-yellow-200
+    {% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %}">
+    <span class="material-symbols-outlined text-[18px]">{% if msg.tags == 'success' %}check_circle{% elif msg.tags == 'error' %}error{% elif msg.tags == 'warning' %}warning{% else %}info{% endif %}</span>
+    {{ msg }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+  <div class="p-6 max-w-screen-2xl mx-auto">{% block content %}{% endblock %}</div>
+</main>
+
+{% else %}{% block auth_content %}{% endblock %}{% endif %}
+{% block extra_js %}{% endblock %}
+<script src="{% static 'js/main.js' %}"></script>
+<!-- Dark mode script -->
+<script>
+const DARK_KEY = 'edulens_dark';
+
+function applyDark(dark) {
+  // Body ga .dark class qo'shib/olib tashlash
+  document.body.classList.toggle('dark', dark);
+  // Icon: qorong'i => quyosh, yorug' => oy
+  const icon = document.getElementById('dark-icon');
+  if (icon) icon.textContent = dark ? 'light_mode' : 'dark_mode';
+  // Header rang
+  const header = document.querySelector('header');
+  if (header) {
+    header.style.background = dark ? 'rgba(21,24,34,.92)' : '';
+  }
+}
+
+function toggleDark() {
+  const isDark = document.body.classList.contains('dark');
+  const newDark = !isDark;
+  localStorage.setItem(DARK_KEY, newDark);
+  applyDark(newDark);
+}
+
+// Faqat foydalanuvchi o'zi tanlagan bo'lsa dark mode yoqiladi
+const saved = localStorage.getItem(DARK_KEY);
+if (saved === 'true') {
+  applyDark(true);
+}
+</script>
+<!-- Mobile sidebar overlay -->
+<div id="sidebar-overlay" class="lg:hidden fixed inset-0 bg-black/30 z-40 hidden"
+  onclick="closeSidebar()"></div>
+<script>
+function closeSidebar() {
+  const aside = document.querySelector('aside');
+  aside.classList.add('-translate-x-full');
+  aside.classList.remove('translate-x-0');
+  document.getElementById('sidebar-overlay').classList.add('hidden');
+}
+document.getElementById('menu-btn')?.addEventListener('click', function() {
+  const overlay = document.getElementById('sidebar-overlay');
+  const aside = document.querySelector('aside');
+  const isOpen = !aside.classList.contains('-translate-x-full');
+  if (isOpen) { closeSidebar(); }
+  else { aside.classList.remove('-translate-x-full'); aside.classList.add('translate-x-0'); overlay.classList.remove('hidden'); }
+});
+</script>
+</body>
+</html>

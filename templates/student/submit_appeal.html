@@ -1,0 +1,88 @@
+{% extends "base/base.html" %}
+{% block title %}Bahoga e'tiroz{% endblock %}
+{% block page_title %}Bahoga e'tiroz bildirish{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_student.html' %}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <!-- Joriy baho ma'lumoti -->
+  <div class="card mb-5 border border-blue-200 bg-blue-50">
+    <p class="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Topshiriq</p>
+    <h3 class="font-bold text-slate-900 mb-1" style="font-family:'Manrope',sans-serif">{{ sub.assignment.title }}</h3>
+    <p class="text-sm text-slate-600 mb-3">{{ sub.assignment.subject.name }}</p>
+    <div class="flex items-center gap-4">
+      <div>
+        <p class="text-xs text-slate-500">Joriy baho</p>
+        <p class="text-2xl font-black text-slate-900">{{ sub.final_score|default:sub.ai_score|default:0|floatformat:0 }}/100</p>
+      </div>
+      {% if sub.ai_feedback %}
+      <div class="flex-1 text-sm text-slate-600 italic border-l border-blue-200 pl-4">
+        "{{ sub.ai_feedback|truncatechars:120 }}"
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if sub.appeal_status == 'none' or sub.appeal_status == 'rejected' %}
+  <div class="card">
+    <h3 class="font-bold text-slate-900 mb-3" style="font-family:'Manrope',sans-serif">E'tirozni asoslab yozing</h3>
+    <p class="text-sm text-slate-600 mb-4">O'qituvchi sizning e'tirozingizni ko'rib chiqib, qayta baholashi yoki rad etishi mumkin. Iloji boricha aniq va dalillar bilan yozing.</p>
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="text-xs font-bold text-slate-600 block mb-1.5 uppercase tracking-wider">E'tiroz sababi *</label>
+        <textarea name="reason" rows="6" minlength="20" required
+          placeholder="Misol: 3-savolda menining javobim to'g'ri edi, chunki..."
+          class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">{{ sub.appeal_reason }}</textarea>
+        <p class="text-xs text-slate-400 mt-1">Kamida 20 belgi</p>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+        <strong>Eslatma:</strong> Asossiz e'tirozlar o'qituvchiga yomon taassurot qoldirishi mumkin. Avval javobingizni qayta o'qib chiqing.
+      </div>
+
+      <div class="flex gap-3">
+        <a href="{% url 'core:student_progress' %}" class="flex-1 text-center bg-slate-100 text-slate-700 py-3 rounded-xl font-bold text-sm hover:bg-slate-200">Bekor qilish</a>
+        <button type="submit" class="flex-1 bg-[#00236f] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">E'tirozni yuborish</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <!-- Pending yoki accepted -->
+  <div class="card">
+    <div class="flex items-center gap-3 mb-3">
+      {% if sub.appeal_status == 'pending' %}
+        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+          <span class="material-symbols-outlined text-amber-600">hourglass_empty</span>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900">Ko'rib chiqilmoqda</p>
+          <p class="text-xs text-slate-500">{{ sub.appealed_at|date:"d.m.Y H:i" }}</p>
+        </div>
+      {% elif sub.appeal_status == 'accepted' %}
+        <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+          <span class="material-symbols-outlined text-green-600">check_circle</span>
+        </div>
+        <div>
+          <p class="font-bold text-green-900">E'tiroz qabul qilindi</p>
+          <p class="text-xs text-slate-500">Yangi baho: {{ sub.final_score|floatformat:0 }}</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="bg-slate-50 rounded-xl p-3 mb-3">
+      <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sizning e'tirozingiz</p>
+      <p class="text-sm text-slate-700">{{ sub.appeal_reason }}</p>
+    </div>
+
+    {% if sub.appeal_response %}
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3">
+      <p class="text-xs font-bold text-blue-700 uppercase tracking-wider mb-1">O'qituvchi javobi</p>
+      <p class="text-sm text-blue-900">{{ sub.appeal_response }}</p>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

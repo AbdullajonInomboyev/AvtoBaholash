@@ -1,0 +1,191 @@
+{% extends "base/base.html" %}
+{% block title %}{{ dept.name }}{% endblock %}
+{% block page_title %}{{ dept.name }}{% endblock %}
+{% block page_subtitle %}{{ dept.code }} · Kafedra boshqaruvi{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_admin.html' %}{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="card text-center">
+    <p class="text-3xl font-black text-slate-900">{{ teachers|length }}</p>
+    <p class="text-xs text-slate-500 mt-1">O'qituvchi</p>
+  </div>
+  <div class="card text-center">
+    <p class="text-3xl font-black text-slate-900">{{ subjects|length }}</p>
+    <p class="text-xs text-slate-500 mt-1">Fan</p>
+  </div>
+  <div class="card text-center">
+    <p class="text-3xl font-black text-slate-900">{{ groups|length }}</p>
+    <p class="text-xs text-slate-500 mt-1">Guruh</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- O'QITUVCHILAR -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-slate-900">O'qituvchilar ({{ teachers|length }})</h3>
+      <button onclick="document.getElementById('teacher-modal').classList.remove('hidden')" class="text-xs text-[#0058be] font-bold hover:underline flex items-center gap-1">
+        <span class="material-symbols-outlined text-[14px]">add</span> Qo'shish
+      </button>
+    </div>
+    <div class="space-y-2">
+      {% for t in teachers %}
+      <div class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg group">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{{ t.first_name|slice:":1" }}{{ t.last_name|slice:":1" }}</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-slate-900 truncate">{{ t.full_name }}</p>
+          <p class="text-xs text-slate-500 truncate">{{ t.email|default:t.username }}</p>
+        </div>
+        <form method="post" class="opacity-0 group-hover:opacity-100 transition-opacity" onsubmit="return confirm('Olib tashlanadimi?')">
+          {% csrf_token %}<input type="hidden" name="action" value="remove_teacher"><input type="hidden" name="teacher_id" value="{{ t.pk }}">
+          <button type="submit" class="text-red-400 hover:text-red-600 w-7 h-7 flex items-center justify-center"><span class="material-symbols-outlined text-[16px]">close</span></button>
+        </form>
+      </div>
+      {% empty %}<p class="text-sm text-slate-400 text-center py-4">O'qituvchilar yo'q</p>{% endfor %}
+    </div>
+  </div>
+
+  <!-- FANLAR -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-slate-900">Fanlar ({{ subjects|length }})</h3>
+      <button onclick="document.getElementById('subject-modal').classList.remove('hidden')" class="text-xs text-[#0058be] font-bold hover:underline flex items-center gap-1">
+        <span class="material-symbols-outlined text-[14px]">add</span> Qo'shish
+      </button>
+    </div>
+    <div class="space-y-2">
+      {% for s in subjects %}
+      <div class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg group">
+        <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-purple-600 text-[16px]">book</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-slate-900 truncate">{{ s.name }}</p>
+          <p class="text-xs text-slate-500">{{ s.code }} · {{ s.credits }} kredit</p>
+        </div>
+        <form method="post" class="opacity-0 group-hover:opacity-100 transition-opacity" onsubmit="return confirm('O\'chirilsinmi?')">
+          {% csrf_token %}<input type="hidden" name="action" value="remove_subject"><input type="hidden" name="subject_id" value="{{ s.pk }}">
+          <button type="submit" class="text-red-400 hover:text-red-600 w-7 h-7 flex items-center justify-center"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+        </form>
+      </div>
+      {% empty %}<p class="text-sm text-slate-400 text-center py-4">Fanlar yo'q</p>{% endfor %}
+    </div>
+  </div>
+
+  <!-- GURUHLAR -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-slate-900">Guruhlar ({{ groups|length }})</h3>
+      <button onclick="document.getElementById('group-modal').classList.remove('hidden')" class="text-xs text-[#0058be] font-bold hover:underline flex items-center gap-1">
+        <span class="material-symbols-outlined text-[14px]">add</span> Qo'shish
+      </button>
+    </div>
+    <div class="space-y-2">
+      {% for g in groups %}
+      <div class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg group">
+        <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-green-600 text-[16px]">groups</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-slate-900 truncate">{{ g.name }}</p>
+          <p class="text-xs text-slate-500">{{ g.year }}-kurs · {{ g.sc }} talaba</p>
+        </div>
+        <form method="post" class="opacity-0 group-hover:opacity-100 transition-opacity" onsubmit="return confirm('O\'chirilsinmi?')">
+          {% csrf_token %}<input type="hidden" name="action" value="remove_group"><input type="hidden" name="group_id" value="{{ g.pk }}">
+          <button type="submit" class="text-red-400 hover:text-red-600 w-7 h-7 flex items-center justify-center"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+        </form>
+      </div>
+      {% empty %}<p class="text-sm text-slate-400 text-center py-4">Guruhlar yo'q</p>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- O'qituvchi modal -->
+<div id="teacher-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md my-4">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-bold text-slate-900">O'qituvchi qo'shish</h3>
+      <button type="button" onclick="document.getElementById('teacher-modal').classList.add('hidden')"><span class="material-symbols-outlined text-slate-400">close</span></button>
+    </div>
+    <div class="flex gap-2 mb-4 border-b border-slate-100">
+      <button type="button" onclick="switchTab('existing')" id="tab-existing" class="pb-2 px-1 text-sm font-bold border-b-2 border-[#00236f] text-[#00236f]">Mavjudni biriktirish</button>
+      <button type="button" onclick="switchTab('new')" id="tab-new" class="pb-2 px-1 text-sm font-bold border-b-2 border-transparent text-slate-500">Yangi yaratish</button>
+    </div>
+    <form method="post" id="form-existing" class="space-y-3">
+      {% csrf_token %}<input type="hidden" name="action" value="add_teacher">
+      <div>
+        <label class="text-xs font-semibold text-slate-600 block mb-1">O'qituvchi *</label>
+        <select name="teacher_id" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm">
+          <option value="">— Kafedrasiz o'qituvchini tanlang —</option>
+          {% for t in free_teachers %}<option value="{{ t.pk }}">{{ t.full_name }} ({{ t.email|default:t.username }})</option>{% endfor %}
+        </select>
+        {% if not free_teachers %}<p class="text-xs text-slate-400 mt-1">Barcha o'qituvchilar kafedraga biriktirilgan. Yangi yarating →</p>{% endif %}
+      </div>
+      <button type="submit" class="w-full bg-[#00236f] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">Biriktirish</button>
+    </form>
+    <form method="post" id="form-new" class="space-y-3 hidden">
+      {% csrf_token %}<input type="hidden" name="action" value="create_teacher">
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Familya *</label><input type="text" name="last_name" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Ism *</label><input type="text" name="first_name" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      </div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Login *</label><input type="text" name="username" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Email</label><input type="email" name="email" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Parol</label><input type="password" name="password" placeholder="Bo'sh qoldirsa default" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      <button type="submit" class="w-full bg-[#00236f] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">Yaratish va biriktirish</button>
+    </form>
+  </div>
+</div>
+
+<!-- Fan modal -->
+<div id="subject-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md my-4">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-bold text-slate-900">Fan qo'shish</h3>
+      <button type="button" onclick="document.getElementById('subject-modal').classList.add('hidden')"><span class="material-symbols-outlined text-slate-400">close</span></button>
+    </div>
+    <form method="post" class="space-y-3">
+      {% csrf_token %}<input type="hidden" name="action" value="add_subject">
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Fan nomi *</label><input type="text" name="name" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Fan kodi *</label><input type="text" name="code" required class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Kreditlar</label><input type="number" name="credits" value="3" min="1" max="10" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Semestr</label><input type="number" name="semester" value="1" min="1" max="8" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      </div>
+      <button type="submit" class="w-full bg-[#00236f] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">Qo'shish</button>
+    </form>
+  </div>
+</div>
+
+<!-- Guruh modal -->
+<div id="group-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md my-4">
+    <div class="flex justify-between mb-4">
+      <h3 class="font-bold text-slate-900">Guruh qo'shish</h3>
+      <button type="button" onclick="document.getElementById('group-modal').classList.add('hidden')"><span class="material-symbols-outlined text-slate-400">close</span></button>
+    </div>
+    <form method="post" class="space-y-3">
+      {% csrf_token %}<input type="hidden" name="action" value="add_group">
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Guruh nomi *</label><input type="text" name="name" required placeholder="IF-201" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      <div><label class="text-xs font-semibold text-slate-600 block mb-1">Kurs</label><input type="number" name="year" value="1" min="1" max="6" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm"></div>
+      <button type="submit" class="w-full bg-[#00236f] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#1e3a8a]">Qo'shish</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.getElementById('form-existing').classList.toggle('hidden', tab !== 'existing');
+  document.getElementById('form-new').classList.toggle('hidden', tab !== 'new');
+  document.getElementById('tab-existing').classList.toggle('border-[#00236f]', tab === 'existing');
+  document.getElementById('tab-existing').classList.toggle('text-[#00236f]', tab === 'existing');
+  document.getElementById('tab-existing').classList.toggle('text-slate-500', tab !== 'existing');
+  document.getElementById('tab-existing').classList.toggle('border-transparent', tab !== 'existing');
+  document.getElementById('tab-new').classList.toggle('border-[#00236f]', tab === 'new');
+  document.getElementById('tab-new').classList.toggle('text-[#00236f]', tab === 'new');
+  document.getElementById('tab-new').classList.toggle('text-slate-500', tab !== 'new');
+  document.getElementById('tab-new').classList.toggle('border-transparent', tab !== 'new');
+}
+</script>
+{% endblock %}

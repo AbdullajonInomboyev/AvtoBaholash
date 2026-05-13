@@ -1,0 +1,30 @@
+{% extends "base/base.html" %}
+{% block title %}Fanlarim{% endblock %}
+{% block page_title %}Fanlarim{% endblock %}
+{% block page_subtitle %}Sizga biriktirilgan fanlar{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block content %}
+{% if not my_subjects %}
+<div class="card text-center py-14"><span class="material-symbols-outlined text-5xl text-slate-300">book</span><p class="text-slate-500 mt-3 font-semibold">Sizga hali fan biriktirilmagan</p><p class="text-sm text-slate-400 mt-1">Kafedra mudiridan fan biriktirishini so'rang</p></div>
+{% else %}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+  {% for st in my_subjects %}
+  <div class="card hover:shadow-md transition-shadow border border-slate-100 hover:border-[#0058be]/20">
+    <div class="flex items-start justify-between mb-4">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00236f] to-[#0058be] flex items-center justify-center text-white text-sm font-bold">{{ st.subject.code|slice:":3" }}</div>
+      <span class="text-xs bg-blue-50 text-blue-700 font-bold px-2 py-1 rounded-lg">{{ st.subject.credits }} kredit</span>
+    </div>
+    <h3 class="font-bold text-slate-900 font-hl text-base mb-1">{{ st.subject.name }}</h3>
+    <p class="text-xs text-slate-500 mb-3">{{ st.subject.department.name }} · {{ st.subject.semester }}-semestr</p>
+    <div class="flex flex-wrap gap-1 mb-4">
+      {% for g in st.groups.all %}<span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded">{{ g.name }}</span>{% endfor %}
+    </div>
+    <div class="flex gap-2">
+      <a href="{% url 'core:teacher_assignments' %}?subject={{ st.subject.pk }}" class="flex-1 text-center text-xs font-bold py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors">Topshiriqlar</a>
+      <a href="{% url 'core:teacher_upload_syllabus' subject_id=st.subject.pk %}" class="flex-1 text-center text-xs font-bold py-2 bg-[#00236f] text-white rounded-lg hover:bg-[#1e3a8a] transition-colors">Sillabus</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

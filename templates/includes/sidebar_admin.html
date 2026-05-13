@@ -1,0 +1,21 @@
+<a href="{% url 'core:admin_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' or request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">dashboard</span>Boshqaruv paneli
+</a>
+<a href="{% url 'core:admin_departments' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_departments' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">domain</span>Kafedralar
+</a>
+<a href="{% url 'core:admin_users' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">group</span>Foydalanuvchilar
+</a>
+<a href="{% url 'core:admin_subjects' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_subjects' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">book</span>Fanlar
+</a>
+<a href="{% url 'core:admin_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_reports' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">bar_chart</span>Hisobotlar
+</a>
+<a href="{% url 'analytics:admin' %}" class="nav-link {% if request.resolver_match.app_name == 'analytics' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">analytics</span>Tahlil
+</a>
+<a href="{% url 'core:admin_settings' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_settings' %}active{% endif %}">
+  <span class="material-symbols-outlined text-[18px]">settings</span>Sozlamalar
+</a>

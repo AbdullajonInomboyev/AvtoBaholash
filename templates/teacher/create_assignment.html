@@ -1,0 +1,122 @@
+{% extends "base/base.html" %}
+{% block title %}Yangi topshiriq{% endblock %}
+{% block page_title %}Yangi topshiriq yaratish{% endblock %}
+{% block page_subtitle %}Test, yozma ish yoki fayl topshiriq{% endblock %}
+{% block sidebar_nav %}{% include 'includes/sidebar_teacher.html' %}{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <form method="post">
+    {% csrf_token %}
+    <div class="card space-y-5">
+      <!-- Type selector -->
+      <div>
+        <label class="text-sm font-bold text-slate-700 block mb-2">Topshiriq turi *</label>
+        <div class="grid grid-cols-3 gap-3" id="type-selector">
+          {% for val,label,icon,desc in assignment_types %}
+          <label class="type-option cursor-pointer">
+            <input type="radio" name="assignment_type" value="{{ val }}" class="sr-only" {% if val == 'test' %}checked{% endif %} onchange="toggleTypeFields('{{ val }}')">
+            <div class="type-card border-2 border-slate-200 rounded-xl p-4 text-center hover:border-[#0058be] transition-colors {% if val == 'test' %}border-[#00236f] bg-blue-50{% endif %}">
+              <span class="material-symbols-outlined text-3xl text-slate-400 block mb-2">{{ icon }}</span>
+              <p class="font-bold text-sm text-slate-900">{{ label }}</p>
+              <p class="text-[10px] text-slate-500 mt-1">{{ desc }}</p>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-bold text-slate-700 block mb-1">Sarlavha *</label>
+        <input name="title" required class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]" placeholder="Topshiriq nomi">
+      </div>
+      <div>
+        <label class="text-sm font-bold text-slate-700 block mb-1">Fan *</label>
+        <select name="subject" required class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]" onchange="updateGroups(this)">
+          <option value="">— Fan tanlang —</option>
+          {% for st in my_subjects %}<option value="{{ st.subject.pk }}" data-groups="{{ st.groups.all|join:',' }}"{% if preselected_subject == st.subject.pk|stringformat:"s" %} selected{% endif %}>{{ st.subject.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="text-sm font-bold text-slate-700 block mb-1">Guruhlar *</label>
+        <div class="flex flex-wrap gap-2" id="groups-container">
+          {% for g in all_groups %}
+          <label class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-slate-100 transition-colors">
+            <input type="checkbox" name="groups" value="{{ g.pk }}" class="rounded border-slate-300">
+            <span class="text-sm font-semibold text-slate-700">{{ g.name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-bold text-slate-700 block mb-1">Tavsif / Savol matni</label>
+        <textarea name="description" rows="3" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0058be] resize-none" placeholder="Topshiriq tavsifi yoki asosiy savol..."></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm font-bold text-slate-700 block mb-1">Topshirish muddati *</label>
+          <input type="datetime-local" name="deadline" required class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]">
+        </div>
+        <div>
+          <label class="text-sm font-bold text-slate-700 block mb-1">Max ball</label>
+          <input type="number" name="max_score" value="100" min="1" max="100" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]">
+        </div>
+      </div>
+      <!-- Test-specific fields -->
+      <div id="test-fields">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-bold text-slate-700 block mb-1">Davomiyligi (daqiqa)</label>
+            <input type="number" name="duration_minutes" value="30" min="5" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]">
+          </div>
+          <div>
+            <label class="text-sm font-bold text-slate-700 block mb-1">Har talabaga necha savol <span class="text-slate-400">(0=barchasi)</span></label>
+            <input type="number" name="questions_per_student" value="0" min="0" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]">
+          </div>
+        </div>
+        <label class="flex items-center gap-2 mt-3 cursor-pointer">
+          <input type="checkbox" name="shuffle_questions" checked class="rounded border-slate-300">
+          <span class="text-sm text-slate-700">Savollarni aralashtirish</span>
+        </label>
+        <label class="flex items-start gap-2 mt-2 cursor-pointer">
+          <input type="checkbox" name="show_review_to_student" class="rounded border-slate-300 mt-0.5">
+          <div>
+            <span class="text-sm text-slate-700">Talabaga savollar tahlilini ko'rsatish</span>
+            <p class="text-xs text-slate-500">Yakunlangach, talaba o'ziga tushgan savollar va o'z javoblarini ko'radi. To'g'ri javoblar yashirin qoladi.</p>
+          </div>
+        </label>
+      </div>
+      <!-- File-specific fields -->
+      <div id="file-fields" class="hidden">
+        <label class="text-sm font-bold text-slate-700 block mb-1">Ruxsat etilgan fayl turlari <span class="text-slate-400">(vergul bilan)</span></label>
+        <input name="allowed_file_types" value=".pdf,.docx,.zip" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0058be]" placeholder=".pdf,.docx">
+      </div>
+
+      <div class="flex gap-2 text-xs text-slate-500 mb-3">
+        <span>Shablon yuklab olish:</span>
+        <a href="/assessment/template/test/" class="text-[#0058be] font-semibold hover:underline flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">download</span>Test (.docx)</a>
+        <a href="/assessment/template/written/" class="text-[#0058be] font-semibold hover:underline flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">download</span>Yozma ish (.docx)</a>
+      </div>
+      <button type="submit" class="w-full flex items-center justify-center gap-2 bg-[#00236f] text-white py-3.5 rounded-xl font-bold hover:bg-[#1e3a8a] transition-colors">
+        <span class="material-symbols-outlined text-[18px]">add_circle</span> Topshiriq yaratish
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function toggleTypeFields(type) {
+  document.getElementById('test-fields').classList.toggle('hidden', type !== 'test');
+  document.getElementById('file-fields').classList.toggle('hidden', type !== 'file');
+  document.querySelectorAll('.type-card').forEach(c => c.classList.remove('border-[#00236f]','bg-blue-50'));
+  document.querySelector(`input[value="${type}"]`).closest('.type-option').querySelector('.type-card').classList.add('border-[#00236f]','bg-blue-50');
+}
+document.querySelectorAll('.type-option input').forEach(r => r.addEventListener('change', () => toggleTypeFields(r.value)));
+// Preselected fan bo'lsa, sahifa yuklanganda guruhlarni filter qilish
+document.addEventListener('DOMContentLoaded', function() {
+  const sel = document.querySelector('select[name="subject"]');
+  if (sel && sel.value) {
+    updateGroups(sel);
+  }
+});
+</script>
+{% endblock %}
